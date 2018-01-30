@@ -78,7 +78,7 @@
 
 //////////////////////////////////
 #include "node-plugin-proto.h"
-#include "webstreamer.hpp"
+#include "libwebstreamer.hpp"
 USING_LIBWEBSTREAMER_NS
 
 static void init(const void* self, const void* data, size_t size)

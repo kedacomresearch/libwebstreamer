@@ -11,7 +11,8 @@ autocmake_pkgconfig_init()
 include_directories(lib)
 
 #add_library( libwebstreamer SHARED lib/source/example.cpp)
-file(GLOB_RECURSE LWS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/lib/*.[ch]pp")
+file(GLOB_RECURSE LWS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/lib/*.[ch]pp" "${CMAKE_CURRENT_SOURCE_DIR}/lib/*.[ch]"
+                              "${CMAKE_CURRENT_SOURCE_DIR}/lib/flatbuffers/*.h")
 
 autocmake_add_library(libwebstreamer  SHARED
              SOURCES ${LWS_SOURCES}
@@ -31,4 +32,4 @@ install(TARGETS libwebstreamer
         ARCHIVE DESTINATION lib
 		RUNTIME DESTINATION bin
 		)
-INSTALL(FILES ${CMAKE_SOURCE_DIR}/lib/libwebstreamer.h  DESTINATION include )
+INSTALL(FILES ${CMAKE_SOURCE_DIR}/lib/libwebstreamer.hpp  DESTINATION include )

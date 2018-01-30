@@ -1,6 +1,6 @@
 #include <owr/owr.h>
 #include <json-glib/json-glib.h>
-#include "webstreamer.hpp"
+#include "libwebstreamer.hpp"
 #include <stdio.h>
 LIBWEBSTREAMER_NS_BEGIN
 

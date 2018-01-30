@@ -1,0 +1,106 @@
+include "webrtc.fbs";
+
+namespace webstreamer;
+
+enum EndpointType : int8
+{
+    RTSPCLIENT,
+    WEBRTC
+}
+
+table EndpointBase
+{
+    id   : string;
+    type : EndpointType;
+}
+
+table RtspClient
+{
+    base     : EndpointBase;
+    url      : string;
+}
+
+table Webrtc
+{
+    base       : EndpointBase;
+    group      : string;
+    connection : string;
+    sdp_role   : webstreamer.webrtc.SdpRole;
+    audio_stream_mode : webstreamer.webrtc.StreamMode;
+    video_stream_mode : webstreamer.webrtc.StreamMode;
+}
+
+table Endpoint
+{
+    rtspclient : RtspClient;
+    webrtc     : Webrtc;
+}
+
+enum VideoCodec : int8
+{
+    H264,
+	H265,
+	VP8
+}
+
+enum AudioCodec : int8
+{
+    PCMA,
+    OPUS
+}
+
+table Pipeline
+{
+    id   : string;
+    video_codec : VideoCodec;
+    audio_codec : AudioCodec;
+}
+
+table LiveStreamCreate
+{
+    pipeline : Pipeline;
+    endpoint : Endpoint;
+}
+
+table LiveStreamDestroy
+{
+    id   : string;
+}
+
+table LiveStreamAddEndpoint
+{
+    id       : string;
+    endpoint : Endpoint;
+}
+
+table LiveStreamAddEndpoints
+{
+    id        : string;
+    endpoints : [Endpoint];
+}
+
+table LiveStreamRemoveEndpoint
+{
+    id             : string;  //livestream id
+    endpoint_id    : string;  //endpoint id
+}
+
+table LiveStreamRemoveEndpoints
+{
+    id              : string;  //livestream id
+    endpoint_ids    : [string];  //endpoint ids
+}
+
+table LiveStreamError
+{
+    code : int8;
+    reason : string;
+}
+
+root_type LiveStreamCreate;
+root_type LiveStreamDestroy;
+root_type LiveStreamAddEndpoint;
+root_type LiveStreamRemoveEndpoint;
+root_type LiveStreamAddEndpoints;
+root_type LiveStreamRemoveEndpoints;
+root_type LiveStreamError;

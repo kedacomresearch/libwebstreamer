@@ -45,7 +45,7 @@ namespace libwebstreamer
 			gboolean on_pipeline_manager_dispatch(gpointer pipeline_manager)
 			{
 				call_t * call = (call_t *)g_async_queue_pop(call_queue.get());
-				static_cast<pipeline::PipelineManager*>(pipeline_manager)->on_call(call->self_, call->context_, call->data_, call->size_);
+				static_cast<pipeline::PipelineManager*>(pipeline_manager)->on_nodejs_call(call->self_, call->context_, call->data_, call->size_);
 				delete call;
 
 				return G_SOURCE_REMOVE;

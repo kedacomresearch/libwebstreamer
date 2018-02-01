@@ -18,7 +18,7 @@ static void init(const void* self, const void* data, size_t size)
 static void call(const void* self, const void* context,
 	const void* data, size_t size)
 {
-	nodejs::adapter::on_plugin_call(self, context, data, size);
+	nodejs::adapter::on_nodejs_call(self, context, data, size);
 }
 
 static void terminate(const void* self, void(*done)(const void* self))

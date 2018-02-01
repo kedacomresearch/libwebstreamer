@@ -1,8 +1,10 @@
-#include <memory>
-#include <glib.h>
+
 #include "libwebstreamer.hpp"
 #include "dispatcher.hpp"
 #include <pipeline/pipeline_manager.hpp>
+
+#include <memory>
+#include <glib.h>
 
 namespace libwebstreamer
 {

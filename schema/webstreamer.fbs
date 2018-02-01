@@ -93,14 +93,24 @@ table LiveStreamRemoveEndpoints
 
 table LiveStreamError
 {
-    code : int8;
+    code : short;
     reason : string;
 }
 
-root_type LiveStreamCreate;
-root_type LiveStreamDestroy;
-root_type LiveStreamAddEndpoint;
-root_type LiveStreamRemoveEndpoint;
-root_type LiveStreamAddEndpoints;
-root_type LiveStreamRemoveEndpoints;
-root_type LiveStreamError;
+union Any
+{
+    LiveStreamCreate,
+    LiveStreamDestroy,
+    LiveStreamAddEndpoint,
+    LiveStreamRemoveEndpoint,
+    LiveStreamAddEndpoints,
+    LiveStreamRemoveEndpoints,
+    LiveStreamError
+}
+
+table LiveStreamAny
+{
+    any : Any;
+}
+
+root_type LiveStreamAny;

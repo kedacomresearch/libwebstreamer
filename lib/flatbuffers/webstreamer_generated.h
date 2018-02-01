@@ -34,6 +34,8 @@ struct LiveStreamRemoveEndpoints;
 
 struct LiveStreamError;
 
+struct LiveStreamAny;
+
 enum EndpointType {
   EndpointType_RTSPCLIENT = 0,
   EndpointType_WEBRTC = 1,
@@ -123,6 +125,88 @@ inline const char *EnumNameAudioCodec(AudioCodec e) {
   const size_t index = static_cast<int>(e);
   return EnumNamesAudioCodec()[index];
 }
+
+enum Any {
+  Any_NONE = 0,
+  Any_LiveStreamCreate = 1,
+  Any_LiveStreamDestroy = 2,
+  Any_LiveStreamAddEndpoint = 3,
+  Any_LiveStreamRemoveEndpoint = 4,
+  Any_LiveStreamAddEndpoints = 5,
+  Any_LiveStreamRemoveEndpoints = 6,
+  Any_LiveStreamError = 7,
+  Any_MIN = Any_NONE,
+  Any_MAX = Any_LiveStreamError
+};
+
+inline Any (&EnumValuesAny())[8] {
+  static Any values[] = {
+    Any_NONE,
+    Any_LiveStreamCreate,
+    Any_LiveStreamDestroy,
+    Any_LiveStreamAddEndpoint,
+    Any_LiveStreamRemoveEndpoint,
+    Any_LiveStreamAddEndpoints,
+    Any_LiveStreamRemoveEndpoints,
+    Any_LiveStreamError
+  };
+  return values;
+}
+
+inline const char **EnumNamesAny() {
+  static const char *names[] = {
+    "NONE",
+    "LiveStreamCreate",
+    "LiveStreamDestroy",
+    "LiveStreamAddEndpoint",
+    "LiveStreamRemoveEndpoint",
+    "LiveStreamAddEndpoints",
+    "LiveStreamRemoveEndpoints",
+    "LiveStreamError",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameAny(Any e) {
+  const size_t index = static_cast<int>(e);
+  return EnumNamesAny()[index];
+}
+
+template<typename T> struct AnyTraits {
+  static const Any enum_value = Any_NONE;
+};
+
+template<> struct AnyTraits<LiveStreamCreate> {
+  static const Any enum_value = Any_LiveStreamCreate;
+};
+
+template<> struct AnyTraits<LiveStreamDestroy> {
+  static const Any enum_value = Any_LiveStreamDestroy;
+};
+
+template<> struct AnyTraits<LiveStreamAddEndpoint> {
+  static const Any enum_value = Any_LiveStreamAddEndpoint;
+};
+
+template<> struct AnyTraits<LiveStreamRemoveEndpoint> {
+  static const Any enum_value = Any_LiveStreamRemoveEndpoint;
+};
+
+template<> struct AnyTraits<LiveStreamAddEndpoints> {
+  static const Any enum_value = Any_LiveStreamAddEndpoints;
+};
+
+template<> struct AnyTraits<LiveStreamRemoveEndpoints> {
+  static const Any enum_value = Any_LiveStreamRemoveEndpoints;
+};
+
+template<> struct AnyTraits<LiveStreamError> {
+  static const Any enum_value = Any_LiveStreamError;
+};
+
+bool VerifyAny(flatbuffers::Verifier &verifier, const void *obj, Any type);
+bool VerifyAnyVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
 
 struct EndpointBase FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
@@ -839,15 +923,15 @@ struct LiveStreamError FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_CODE = 4,
     VT_REASON = 6
   };
-  int8_t code() const {
-    return GetField<int8_t>(VT_CODE, 0);
+  int16_t code() const {
+    return GetField<int16_t>(VT_CODE, 0);
   }
   const flatbuffers::String *reason() const {
     return GetPointer<const flatbuffers::String *>(VT_REASON);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int8_t>(verifier, VT_CODE) &&
+           VerifyField<int16_t>(verifier, VT_CODE) &&
            VerifyOffset(verifier, VT_REASON) &&
            verifier.Verify(reason()) &&
            verifier.EndTable();
@@ -857,8 +941,8 @@ struct LiveStreamError FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct LiveStreamErrorBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_code(int8_t code) {
-    fbb_.AddElement<int8_t>(LiveStreamError::VT_CODE, code, 0);
+  void add_code(int16_t code) {
+    fbb_.AddElement<int16_t>(LiveStreamError::VT_CODE, code, 0);
   }
   void add_reason(flatbuffers::Offset<flatbuffers::String> reason) {
     fbb_.AddOffset(LiveStreamError::VT_REASON, reason);
@@ -877,7 +961,7 @@ struct LiveStreamErrorBuilder {
 
 inline flatbuffers::Offset<LiveStreamError> CreateLiveStreamError(
     flatbuffers::FlatBufferBuilder &_fbb,
-    int8_t code = 0,
+    int16_t code = 0,
     flatbuffers::Offset<flatbuffers::String> reason = 0) {
   LiveStreamErrorBuilder builder_(_fbb);
   builder_.add_reason(reason);
@@ -887,7 +971,7 @@ inline flatbuffers::Offset<LiveStreamError> CreateLiveStreamError(
 
 inline flatbuffers::Offset<LiveStreamError> CreateLiveStreamErrorDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    int8_t code = 0,
+    int16_t code = 0,
     const char *reason = nullptr) {
   return webstreamer::CreateLiveStreamError(
       _fbb,
@@ -895,18 +979,167 @@ inline flatbuffers::Offset<LiveStreamError> CreateLiveStreamErrorDirect(
       reason ? _fbb.CreateString(reason) : 0);
 }
 
-inline const webstreamer::LiveStreamError *GetLiveStreamError(const void *buf) {
-  return flatbuffers::GetRoot<webstreamer::LiveStreamError>(buf);
+struct LiveStreamAny FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum {
+    VT_ANY_TYPE = 4,
+    VT_ANY = 6
+  };
+  Any any_type() const {
+    return static_cast<Any>(GetField<uint8_t>(VT_ANY_TYPE, 0));
+  }
+  const void *any() const {
+    return GetPointer<const void *>(VT_ANY);
+  }
+  template<typename T> const T *any_as() const;
+  const LiveStreamCreate *any_as_LiveStreamCreate() const {
+    return any_type() == Any_LiveStreamCreate ? static_cast<const LiveStreamCreate *>(any()) : nullptr;
+  }
+  const LiveStreamDestroy *any_as_LiveStreamDestroy() const {
+    return any_type() == Any_LiveStreamDestroy ? static_cast<const LiveStreamDestroy *>(any()) : nullptr;
+  }
+  const LiveStreamAddEndpoint *any_as_LiveStreamAddEndpoint() const {
+    return any_type() == Any_LiveStreamAddEndpoint ? static_cast<const LiveStreamAddEndpoint *>(any()) : nullptr;
+  }
+  const LiveStreamRemoveEndpoint *any_as_LiveStreamRemoveEndpoint() const {
+    return any_type() == Any_LiveStreamRemoveEndpoint ? static_cast<const LiveStreamRemoveEndpoint *>(any()) : nullptr;
+  }
+  const LiveStreamAddEndpoints *any_as_LiveStreamAddEndpoints() const {
+    return any_type() == Any_LiveStreamAddEndpoints ? static_cast<const LiveStreamAddEndpoints *>(any()) : nullptr;
+  }
+  const LiveStreamRemoveEndpoints *any_as_LiveStreamRemoveEndpoints() const {
+    return any_type() == Any_LiveStreamRemoveEndpoints ? static_cast<const LiveStreamRemoveEndpoints *>(any()) : nullptr;
+  }
+  const LiveStreamError *any_as_LiveStreamError() const {
+    return any_type() == Any_LiveStreamError ? static_cast<const LiveStreamError *>(any()) : nullptr;
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_ANY_TYPE) &&
+           VerifyOffset(verifier, VT_ANY) &&
+           VerifyAny(verifier, any(), any_type()) &&
+           verifier.EndTable();
+  }
+};
+
+template<> inline const LiveStreamCreate *LiveStreamAny::any_as<LiveStreamCreate>() const {
+  return any_as_LiveStreamCreate();
 }
 
-inline bool VerifyLiveStreamErrorBuffer(
+template<> inline const LiveStreamDestroy *LiveStreamAny::any_as<LiveStreamDestroy>() const {
+  return any_as_LiveStreamDestroy();
+}
+
+template<> inline const LiveStreamAddEndpoint *LiveStreamAny::any_as<LiveStreamAddEndpoint>() const {
+  return any_as_LiveStreamAddEndpoint();
+}
+
+template<> inline const LiveStreamRemoveEndpoint *LiveStreamAny::any_as<LiveStreamRemoveEndpoint>() const {
+  return any_as_LiveStreamRemoveEndpoint();
+}
+
+template<> inline const LiveStreamAddEndpoints *LiveStreamAny::any_as<LiveStreamAddEndpoints>() const {
+  return any_as_LiveStreamAddEndpoints();
+}
+
+template<> inline const LiveStreamRemoveEndpoints *LiveStreamAny::any_as<LiveStreamRemoveEndpoints>() const {
+  return any_as_LiveStreamRemoveEndpoints();
+}
+
+template<> inline const LiveStreamError *LiveStreamAny::any_as<LiveStreamError>() const {
+  return any_as_LiveStreamError();
+}
+
+struct LiveStreamAnyBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_any_type(Any any_type) {
+    fbb_.AddElement<uint8_t>(LiveStreamAny::VT_ANY_TYPE, static_cast<uint8_t>(any_type), 0);
+  }
+  void add_any(flatbuffers::Offset<void> any) {
+    fbb_.AddOffset(LiveStreamAny::VT_ANY, any);
+  }
+  explicit LiveStreamAnyBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  LiveStreamAnyBuilder &operator=(const LiveStreamAnyBuilder &);
+  flatbuffers::Offset<LiveStreamAny> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<LiveStreamAny>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<LiveStreamAny> CreateLiveStreamAny(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    Any any_type = Any_NONE,
+    flatbuffers::Offset<void> any = 0) {
+  LiveStreamAnyBuilder builder_(_fbb);
+  builder_.add_any(any);
+  builder_.add_any_type(any_type);
+  return builder_.Finish();
+}
+
+inline bool VerifyAny(flatbuffers::Verifier &verifier, const void *obj, Any type) {
+  switch (type) {
+    case Any_NONE: {
+      return true;
+    }
+    case Any_LiveStreamCreate: {
+      auto ptr = reinterpret_cast<const LiveStreamCreate *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Any_LiveStreamDestroy: {
+      auto ptr = reinterpret_cast<const LiveStreamDestroy *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Any_LiveStreamAddEndpoint: {
+      auto ptr = reinterpret_cast<const LiveStreamAddEndpoint *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Any_LiveStreamRemoveEndpoint: {
+      auto ptr = reinterpret_cast<const LiveStreamRemoveEndpoint *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Any_LiveStreamAddEndpoints: {
+      auto ptr = reinterpret_cast<const LiveStreamAddEndpoints *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Any_LiveStreamRemoveEndpoints: {
+      auto ptr = reinterpret_cast<const LiveStreamRemoveEndpoints *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Any_LiveStreamError: {
+      auto ptr = reinterpret_cast<const LiveStreamError *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    default: return false;
+  }
+}
+
+inline bool VerifyAnyVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types) {
+  if (values->size() != types->size()) return false;
+  for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
+    if (!VerifyAny(
+        verifier,  values->Get(i), types->GetEnum<Any>(i))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+inline const webstreamer::LiveStreamAny *GetLiveStreamAny(const void *buf) {
+  return flatbuffers::GetRoot<webstreamer::LiveStreamAny>(buf);
+}
+
+inline bool VerifyLiveStreamAnyBuffer(
     flatbuffers::Verifier &verifier) {
-  return verifier.VerifyBuffer<webstreamer::LiveStreamError>(nullptr);
+  return verifier.VerifyBuffer<webstreamer::LiveStreamAny>(nullptr);
 }
 
-inline void FinishLiveStreamErrorBuffer(
+inline void FinishLiveStreamAnyBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
-    flatbuffers::Offset<webstreamer::LiveStreamError> root) {
+    flatbuffers::Offset<webstreamer::LiveStreamAny> root) {
   fbb.Finish(root);
 }
 

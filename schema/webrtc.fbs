@@ -61,6 +61,17 @@ table TopicPush
     topic    : Topic;
 }
 
-root_type TopicSubscribe;
-root_type TopicNotification;
-root_type TopicPush;
+
+union Any
+{
+    TopicSubscribe,
+    TopicNotification,
+    TopicPush
+}
+
+table TopicAny
+{
+    any : Any;
+}
+
+root_type TopicAny;

@@ -22,6 +22,8 @@ struct TopicNotification;
 
 struct TopicPush;
 
+struct TopicAny;
+
 }  // namespace topics
 
 enum SdpRole {
@@ -118,6 +120,60 @@ inline const char *EnumNameTopicCategory(TopicCategory e) {
   const size_t index = static_cast<int>(e);
   return EnumNamesTopicCategory()[index];
 }
+
+enum Any {
+  Any_NONE = 0,
+  Any_TopicSubscribe = 1,
+  Any_TopicNotification = 2,
+  Any_TopicPush = 3,
+  Any_MIN = Any_NONE,
+  Any_MAX = Any_TopicPush
+};
+
+inline Any (&EnumValuesAny())[4] {
+  static Any values[] = {
+    Any_NONE,
+    Any_TopicSubscribe,
+    Any_TopicNotification,
+    Any_TopicPush
+  };
+  return values;
+}
+
+inline const char **EnumNamesAny() {
+  static const char *names[] = {
+    "NONE",
+    "TopicSubscribe",
+    "TopicNotification",
+    "TopicPush",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameAny(Any e) {
+  const size_t index = static_cast<int>(e);
+  return EnumNamesAny()[index];
+}
+
+template<typename T> struct AnyTraits {
+  static const Any enum_value = Any_NONE;
+};
+
+template<> struct AnyTraits<TopicSubscribe> {
+  static const Any enum_value = Any_TopicSubscribe;
+};
+
+template<> struct AnyTraits<TopicNotification> {
+  static const Any enum_value = Any_TopicNotification;
+};
+
+template<> struct AnyTraits<TopicPush> {
+  static const Any enum_value = Any_TopicPush;
+};
+
+bool VerifyAny(flatbuffers::Verifier &verifier, const void *obj, Any type);
+bool VerifyAnyVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
 
 struct Endpoint FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
@@ -483,18 +539,123 @@ inline flatbuffers::Offset<TopicPush> CreateTopicPush(
   return builder_.Finish();
 }
 
-inline const webstreamer::webrtc::topics::TopicPush *GetTopicPush(const void *buf) {
-  return flatbuffers::GetRoot<webstreamer::webrtc::topics::TopicPush>(buf);
+struct TopicAny FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  enum {
+    VT_ANY_TYPE = 4,
+    VT_ANY = 6
+  };
+  Any any_type() const {
+    return static_cast<Any>(GetField<uint8_t>(VT_ANY_TYPE, 0));
+  }
+  const void *any() const {
+    return GetPointer<const void *>(VT_ANY);
+  }
+  template<typename T> const T *any_as() const;
+  const TopicSubscribe *any_as_TopicSubscribe() const {
+    return any_type() == Any_TopicSubscribe ? static_cast<const TopicSubscribe *>(any()) : nullptr;
+  }
+  const TopicNotification *any_as_TopicNotification() const {
+    return any_type() == Any_TopicNotification ? static_cast<const TopicNotification *>(any()) : nullptr;
+  }
+  const TopicPush *any_as_TopicPush() const {
+    return any_type() == Any_TopicPush ? static_cast<const TopicPush *>(any()) : nullptr;
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_ANY_TYPE) &&
+           VerifyOffset(verifier, VT_ANY) &&
+           VerifyAny(verifier, any(), any_type()) &&
+           verifier.EndTable();
+  }
+};
+
+template<> inline const TopicSubscribe *TopicAny::any_as<TopicSubscribe>() const {
+  return any_as_TopicSubscribe();
 }
 
-inline bool VerifyTopicPushBuffer(
+template<> inline const TopicNotification *TopicAny::any_as<TopicNotification>() const {
+  return any_as_TopicNotification();
+}
+
+template<> inline const TopicPush *TopicAny::any_as<TopicPush>() const {
+  return any_as_TopicPush();
+}
+
+struct TopicAnyBuilder {
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_any_type(Any any_type) {
+    fbb_.AddElement<uint8_t>(TopicAny::VT_ANY_TYPE, static_cast<uint8_t>(any_type), 0);
+  }
+  void add_any(flatbuffers::Offset<void> any) {
+    fbb_.AddOffset(TopicAny::VT_ANY, any);
+  }
+  explicit TopicAnyBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  TopicAnyBuilder &operator=(const TopicAnyBuilder &);
+  flatbuffers::Offset<TopicAny> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<TopicAny>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<TopicAny> CreateTopicAny(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    Any any_type = Any_NONE,
+    flatbuffers::Offset<void> any = 0) {
+  TopicAnyBuilder builder_(_fbb);
+  builder_.add_any(any);
+  builder_.add_any_type(any_type);
+  return builder_.Finish();
+}
+
+inline bool VerifyAny(flatbuffers::Verifier &verifier, const void *obj, Any type) {
+  switch (type) {
+    case Any_NONE: {
+      return true;
+    }
+    case Any_TopicSubscribe: {
+      auto ptr = reinterpret_cast<const TopicSubscribe *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Any_TopicNotification: {
+      auto ptr = reinterpret_cast<const TopicNotification *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Any_TopicPush: {
+      auto ptr = reinterpret_cast<const TopicPush *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    default: return false;
+  }
+}
+
+inline bool VerifyAnyVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types) {
+  if (values->size() != types->size()) return false;
+  for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
+    if (!VerifyAny(
+        verifier,  values->Get(i), types->GetEnum<Any>(i))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+inline const webstreamer::webrtc::topics::TopicAny *GetTopicAny(const void *buf) {
+  return flatbuffers::GetRoot<webstreamer::webrtc::topics::TopicAny>(buf);
+}
+
+inline bool VerifyTopicAnyBuffer(
     flatbuffers::Verifier &verifier) {
-  return verifier.VerifyBuffer<webstreamer::webrtc::topics::TopicPush>(nullptr);
+  return verifier.VerifyBuffer<webstreamer::webrtc::topics::TopicAny>(nullptr);
 }
 
-inline void FinishTopicPushBuffer(
+inline void FinishTopicAnyBuffer(
     flatbuffers::FlatBufferBuilder &fbb,
-    flatbuffers::Offset<webstreamer::webrtc::topics::TopicPush> root) {
+    flatbuffers::Offset<webstreamer::webrtc::topics::TopicAny> root) {
   fbb.Finish(root);
 }
 

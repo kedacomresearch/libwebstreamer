@@ -43,6 +43,12 @@ namespace libwebstreamer
 				VideoCodec video;
 				AudioCodec audio;
 			};
+
+			struct error_t
+			{
+				int8_t code;
+				std::string reason;
+			};
 		}
 	}
 }

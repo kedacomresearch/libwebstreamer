@@ -1,4 +1,4 @@
-#include <pipeline/pipeline_manager.hpp>
+#include "pipeline_manager.hpp"
 #include <flatbuffers/webstreamer_generated.h>
 #include <glib.h>
 #include <flatbuffers/adapter.hpp>

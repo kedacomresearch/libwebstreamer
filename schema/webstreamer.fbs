@@ -2,16 +2,9 @@ include "webrtc.fbs";
 
 namespace webstreamer;
 
-enum EndpointType : int8
-{
-    RTSPCLIENT,
-    WEBRTC
-}
-
 table EndpointBase
 {
     id   : string;
-    type : EndpointType;
 }
 
 table RtspClient
@@ -30,10 +23,10 @@ table Webrtc
     video_stream_mode : webstreamer.webrtc.StreamMode;
 }
 
-table Endpoint
+union Endpoint
 {
-    rtspclient : RtspClient;
-    webrtc     : Webrtc;
+    RtspClient,
+    Webrtc
 }
 
 enum VideoCodec : int8

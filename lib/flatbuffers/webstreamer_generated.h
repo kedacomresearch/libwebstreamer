@@ -16,8 +16,6 @@ struct RtspClient;
 
 struct Webrtc;
 
-struct Endpoint;
-
 struct Pipeline;
 
 struct LiveStreamCreate;
@@ -36,34 +34,52 @@ struct LiveStreamError;
 
 struct LiveStreamAny;
 
-enum EndpointType {
-  EndpointType_RTSPCLIENT = 0,
-  EndpointType_WEBRTC = 1,
-  EndpointType_MIN = EndpointType_RTSPCLIENT,
-  EndpointType_MAX = EndpointType_WEBRTC
+enum Endpoint {
+  Endpoint_NONE = 0,
+  Endpoint_RtspClient = 1,
+  Endpoint_Webrtc = 2,
+  Endpoint_MIN = Endpoint_NONE,
+  Endpoint_MAX = Endpoint_Webrtc
 };
 
-inline EndpointType (&EnumValuesEndpointType())[2] {
-  static EndpointType values[] = {
-    EndpointType_RTSPCLIENT,
-    EndpointType_WEBRTC
+inline Endpoint (&EnumValuesEndpoint())[3] {
+  static Endpoint values[] = {
+    Endpoint_NONE,
+    Endpoint_RtspClient,
+    Endpoint_Webrtc
   };
   return values;
 }
 
-inline const char **EnumNamesEndpointType() {
+inline const char **EnumNamesEndpoint() {
   static const char *names[] = {
-    "RTSPCLIENT",
-    "WEBRTC",
+    "NONE",
+    "RtspClient",
+    "Webrtc",
     nullptr
   };
   return names;
 }
 
-inline const char *EnumNameEndpointType(EndpointType e) {
+inline const char *EnumNameEndpoint(Endpoint e) {
   const size_t index = static_cast<int>(e);
-  return EnumNamesEndpointType()[index];
+  return EnumNamesEndpoint()[index];
 }
+
+template<typename T> struct EndpointTraits {
+  static const Endpoint enum_value = Endpoint_NONE;
+};
+
+template<> struct EndpointTraits<RtspClient> {
+  static const Endpoint enum_value = Endpoint_RtspClient;
+};
+
+template<> struct EndpointTraits<Webrtc> {
+  static const Endpoint enum_value = Endpoint_Webrtc;
+};
+
+bool VerifyEndpoint(flatbuffers::Verifier &verifier, const void *obj, Endpoint type);
+bool VerifyEndpointVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
 
 enum VideoCodec {
   VideoCodec_H264 = 0,
@@ -210,20 +226,15 @@ bool VerifyAnyVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<
 
 struct EndpointBase FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
-    VT_ID = 4,
-    VT_TYPE = 6
+    VT_ID = 4
   };
   const flatbuffers::String *id() const {
     return GetPointer<const flatbuffers::String *>(VT_ID);
-  }
-  EndpointType type() const {
-    return static_cast<EndpointType>(GetField<int8_t>(VT_TYPE, 0));
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_ID) &&
            verifier.Verify(id()) &&
-           VerifyField<int8_t>(verifier, VT_TYPE) &&
            verifier.EndTable();
   }
 };
@@ -233,9 +244,6 @@ struct EndpointBaseBuilder {
   flatbuffers::uoffset_t start_;
   void add_id(flatbuffers::Offset<flatbuffers::String> id) {
     fbb_.AddOffset(EndpointBase::VT_ID, id);
-  }
-  void add_type(EndpointType type) {
-    fbb_.AddElement<int8_t>(EndpointBase::VT_TYPE, static_cast<int8_t>(type), 0);
   }
   explicit EndpointBaseBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -251,22 +259,18 @@ struct EndpointBaseBuilder {
 
 inline flatbuffers::Offset<EndpointBase> CreateEndpointBase(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> id = 0,
-    EndpointType type = EndpointType_RTSPCLIENT) {
+    flatbuffers::Offset<flatbuffers::String> id = 0) {
   EndpointBaseBuilder builder_(_fbb);
   builder_.add_id(id);
-  builder_.add_type(type);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<EndpointBase> CreateEndpointBaseDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *id = nullptr,
-    EndpointType type = EndpointType_RTSPCLIENT) {
+    const char *id = nullptr) {
   return webstreamer::CreateEndpointBase(
       _fbb,
-      id ? _fbb.CreateString(id) : 0,
-      type);
+      id ? _fbb.CreateString(id) : 0);
 }
 
 struct RtspClient FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -442,58 +446,6 @@ inline flatbuffers::Offset<Webrtc> CreateWebrtcDirect(
       video_stream_mode);
 }
 
-struct Endpoint FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  enum {
-    VT_RTSPCLIENT = 4,
-    VT_WEBRTC = 6
-  };
-  const RtspClient *rtspclient() const {
-    return GetPointer<const RtspClient *>(VT_RTSPCLIENT);
-  }
-  const Webrtc *webrtc() const {
-    return GetPointer<const Webrtc *>(VT_WEBRTC);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_RTSPCLIENT) &&
-           verifier.VerifyTable(rtspclient()) &&
-           VerifyOffset(verifier, VT_WEBRTC) &&
-           verifier.VerifyTable(webrtc()) &&
-           verifier.EndTable();
-  }
-};
-
-struct EndpointBuilder {
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_rtspclient(flatbuffers::Offset<RtspClient> rtspclient) {
-    fbb_.AddOffset(Endpoint::VT_RTSPCLIENT, rtspclient);
-  }
-  void add_webrtc(flatbuffers::Offset<Webrtc> webrtc) {
-    fbb_.AddOffset(Endpoint::VT_WEBRTC, webrtc);
-  }
-  explicit EndpointBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  EndpointBuilder &operator=(const EndpointBuilder &);
-  flatbuffers::Offset<Endpoint> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Endpoint>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<Endpoint> CreateEndpoint(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<RtspClient> rtspclient = 0,
-    flatbuffers::Offset<Webrtc> webrtc = 0) {
-  EndpointBuilder builder_(_fbb);
-  builder_.add_webrtc(webrtc);
-  builder_.add_rtspclient(rtspclient);
-  return builder_.Finish();
-}
-
 struct Pipeline FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
     VT_ID = 4,
@@ -570,23 +522,43 @@ inline flatbuffers::Offset<Pipeline> CreatePipelineDirect(
 struct LiveStreamCreate FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
     VT_PIPELINE = 4,
-    VT_ENDPOINT = 6
+    VT_ENDPOINT_TYPE = 6,
+    VT_ENDPOINT = 8
   };
   const Pipeline *pipeline() const {
     return GetPointer<const Pipeline *>(VT_PIPELINE);
   }
-  const Endpoint *endpoint() const {
-    return GetPointer<const Endpoint *>(VT_ENDPOINT);
+  Endpoint endpoint_type() const {
+    return static_cast<Endpoint>(GetField<uint8_t>(VT_ENDPOINT_TYPE, 0));
+  }
+  const void *endpoint() const {
+    return GetPointer<const void *>(VT_ENDPOINT);
+  }
+  template<typename T> const T *endpoint_as() const;
+  const RtspClient *endpoint_as_RtspClient() const {
+    return endpoint_type() == Endpoint_RtspClient ? static_cast<const RtspClient *>(endpoint()) : nullptr;
+  }
+  const Webrtc *endpoint_as_Webrtc() const {
+    return endpoint_type() == Endpoint_Webrtc ? static_cast<const Webrtc *>(endpoint()) : nullptr;
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_PIPELINE) &&
            verifier.VerifyTable(pipeline()) &&
+           VerifyField<uint8_t>(verifier, VT_ENDPOINT_TYPE) &&
            VerifyOffset(verifier, VT_ENDPOINT) &&
-           verifier.VerifyTable(endpoint()) &&
+           VerifyEndpoint(verifier, endpoint(), endpoint_type()) &&
            verifier.EndTable();
   }
 };
+
+template<> inline const RtspClient *LiveStreamCreate::endpoint_as<RtspClient>() const {
+  return endpoint_as_RtspClient();
+}
+
+template<> inline const Webrtc *LiveStreamCreate::endpoint_as<Webrtc>() const {
+  return endpoint_as_Webrtc();
+}
 
 struct LiveStreamCreateBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
@@ -594,7 +566,10 @@ struct LiveStreamCreateBuilder {
   void add_pipeline(flatbuffers::Offset<Pipeline> pipeline) {
     fbb_.AddOffset(LiveStreamCreate::VT_PIPELINE, pipeline);
   }
-  void add_endpoint(flatbuffers::Offset<Endpoint> endpoint) {
+  void add_endpoint_type(Endpoint endpoint_type) {
+    fbb_.AddElement<uint8_t>(LiveStreamCreate::VT_ENDPOINT_TYPE, static_cast<uint8_t>(endpoint_type), 0);
+  }
+  void add_endpoint(flatbuffers::Offset<void> endpoint) {
     fbb_.AddOffset(LiveStreamCreate::VT_ENDPOINT, endpoint);
   }
   explicit LiveStreamCreateBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -612,10 +587,12 @@ struct LiveStreamCreateBuilder {
 inline flatbuffers::Offset<LiveStreamCreate> CreateLiveStreamCreate(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<Pipeline> pipeline = 0,
-    flatbuffers::Offset<Endpoint> endpoint = 0) {
+    Endpoint endpoint_type = Endpoint_NONE,
+    flatbuffers::Offset<void> endpoint = 0) {
   LiveStreamCreateBuilder builder_(_fbb);
   builder_.add_endpoint(endpoint);
   builder_.add_pipeline(pipeline);
+  builder_.add_endpoint_type(endpoint_type);
   return builder_.Finish();
 }
 
@@ -671,23 +648,43 @@ inline flatbuffers::Offset<LiveStreamDestroy> CreateLiveStreamDestroyDirect(
 struct LiveStreamAddEndpoint FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
     VT_ID = 4,
-    VT_ENDPOINT = 6
+    VT_ENDPOINT_TYPE = 6,
+    VT_ENDPOINT = 8
   };
   const flatbuffers::String *id() const {
     return GetPointer<const flatbuffers::String *>(VT_ID);
   }
-  const Endpoint *endpoint() const {
-    return GetPointer<const Endpoint *>(VT_ENDPOINT);
+  Endpoint endpoint_type() const {
+    return static_cast<Endpoint>(GetField<uint8_t>(VT_ENDPOINT_TYPE, 0));
+  }
+  const void *endpoint() const {
+    return GetPointer<const void *>(VT_ENDPOINT);
+  }
+  template<typename T> const T *endpoint_as() const;
+  const RtspClient *endpoint_as_RtspClient() const {
+    return endpoint_type() == Endpoint_RtspClient ? static_cast<const RtspClient *>(endpoint()) : nullptr;
+  }
+  const Webrtc *endpoint_as_Webrtc() const {
+    return endpoint_type() == Endpoint_Webrtc ? static_cast<const Webrtc *>(endpoint()) : nullptr;
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_ID) &&
            verifier.Verify(id()) &&
+           VerifyField<uint8_t>(verifier, VT_ENDPOINT_TYPE) &&
            VerifyOffset(verifier, VT_ENDPOINT) &&
-           verifier.VerifyTable(endpoint()) &&
+           VerifyEndpoint(verifier, endpoint(), endpoint_type()) &&
            verifier.EndTable();
   }
 };
+
+template<> inline const RtspClient *LiveStreamAddEndpoint::endpoint_as<RtspClient>() const {
+  return endpoint_as_RtspClient();
+}
+
+template<> inline const Webrtc *LiveStreamAddEndpoint::endpoint_as<Webrtc>() const {
+  return endpoint_as_Webrtc();
+}
 
 struct LiveStreamAddEndpointBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
@@ -695,7 +692,10 @@ struct LiveStreamAddEndpointBuilder {
   void add_id(flatbuffers::Offset<flatbuffers::String> id) {
     fbb_.AddOffset(LiveStreamAddEndpoint::VT_ID, id);
   }
-  void add_endpoint(flatbuffers::Offset<Endpoint> endpoint) {
+  void add_endpoint_type(Endpoint endpoint_type) {
+    fbb_.AddElement<uint8_t>(LiveStreamAddEndpoint::VT_ENDPOINT_TYPE, static_cast<uint8_t>(endpoint_type), 0);
+  }
+  void add_endpoint(flatbuffers::Offset<void> endpoint) {
     fbb_.AddOffset(LiveStreamAddEndpoint::VT_ENDPOINT, endpoint);
   }
   explicit LiveStreamAddEndpointBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -713,41 +713,51 @@ struct LiveStreamAddEndpointBuilder {
 inline flatbuffers::Offset<LiveStreamAddEndpoint> CreateLiveStreamAddEndpoint(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> id = 0,
-    flatbuffers::Offset<Endpoint> endpoint = 0) {
+    Endpoint endpoint_type = Endpoint_NONE,
+    flatbuffers::Offset<void> endpoint = 0) {
   LiveStreamAddEndpointBuilder builder_(_fbb);
   builder_.add_endpoint(endpoint);
   builder_.add_id(id);
+  builder_.add_endpoint_type(endpoint_type);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<LiveStreamAddEndpoint> CreateLiveStreamAddEndpointDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *id = nullptr,
-    flatbuffers::Offset<Endpoint> endpoint = 0) {
+    Endpoint endpoint_type = Endpoint_NONE,
+    flatbuffers::Offset<void> endpoint = 0) {
   return webstreamer::CreateLiveStreamAddEndpoint(
       _fbb,
       id ? _fbb.CreateString(id) : 0,
+      endpoint_type,
       endpoint);
 }
 
 struct LiveStreamAddEndpoints FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
     VT_ID = 4,
-    VT_ENDPOINTS = 6
+    VT_ENDPOINTS_TYPE = 6,
+    VT_ENDPOINTS = 8
   };
   const flatbuffers::String *id() const {
     return GetPointer<const flatbuffers::String *>(VT_ID);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<Endpoint>> *endpoints() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<Endpoint>> *>(VT_ENDPOINTS);
+  const flatbuffers::Vector<uint8_t> *endpoints_type() const {
+    return GetPointer<const flatbuffers::Vector<uint8_t> *>(VT_ENDPOINTS_TYPE);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<void>> *endpoints() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<void>> *>(VT_ENDPOINTS);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyOffset(verifier, VT_ID) &&
            verifier.Verify(id()) &&
+           VerifyOffset(verifier, VT_ENDPOINTS_TYPE) &&
+           verifier.Verify(endpoints_type()) &&
            VerifyOffset(verifier, VT_ENDPOINTS) &&
            verifier.Verify(endpoints()) &&
-           verifier.VerifyVectorOfTables(endpoints()) &&
+           VerifyEndpointVector(verifier, endpoints(), endpoints_type()) &&
            verifier.EndTable();
   }
 };
@@ -758,7 +768,10 @@ struct LiveStreamAddEndpointsBuilder {
   void add_id(flatbuffers::Offset<flatbuffers::String> id) {
     fbb_.AddOffset(LiveStreamAddEndpoints::VT_ID, id);
   }
-  void add_endpoints(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Endpoint>>> endpoints) {
+  void add_endpoints_type(flatbuffers::Offset<flatbuffers::Vector<uint8_t>> endpoints_type) {
+    fbb_.AddOffset(LiveStreamAddEndpoints::VT_ENDPOINTS_TYPE, endpoints_type);
+  }
+  void add_endpoints(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> endpoints) {
     fbb_.AddOffset(LiveStreamAddEndpoints::VT_ENDPOINTS, endpoints);
   }
   explicit LiveStreamAddEndpointsBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -776,9 +789,11 @@ struct LiveStreamAddEndpointsBuilder {
 inline flatbuffers::Offset<LiveStreamAddEndpoints> CreateLiveStreamAddEndpoints(
     flatbuffers::FlatBufferBuilder &_fbb,
     flatbuffers::Offset<flatbuffers::String> id = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Endpoint>>> endpoints = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<uint8_t>> endpoints_type = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<void>>> endpoints = 0) {
   LiveStreamAddEndpointsBuilder builder_(_fbb);
   builder_.add_endpoints(endpoints);
+  builder_.add_endpoints_type(endpoints_type);
   builder_.add_id(id);
   return builder_.Finish();
 }
@@ -786,11 +801,13 @@ inline flatbuffers::Offset<LiveStreamAddEndpoints> CreateLiveStreamAddEndpoints(
 inline flatbuffers::Offset<LiveStreamAddEndpoints> CreateLiveStreamAddEndpointsDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     const char *id = nullptr,
-    const std::vector<flatbuffers::Offset<Endpoint>> *endpoints = nullptr) {
+    const std::vector<uint8_t> *endpoints_type = nullptr,
+    const std::vector<flatbuffers::Offset<void>> *endpoints = nullptr) {
   return webstreamer::CreateLiveStreamAddEndpoints(
       _fbb,
       id ? _fbb.CreateString(id) : 0,
-      endpoints ? _fbb.CreateVector<flatbuffers::Offset<Endpoint>>(*endpoints) : 0);
+      endpoints_type ? _fbb.CreateVector<uint8_t>(*endpoints_type) : 0,
+      endpoints ? _fbb.CreateVector<flatbuffers::Offset<void>>(*endpoints) : 0);
 }
 
 struct LiveStreamRemoveEndpoint FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
@@ -1078,6 +1095,34 @@ inline flatbuffers::Offset<LiveStreamAny> CreateLiveStreamAny(
   builder_.add_any(any);
   builder_.add_any_type(any_type);
   return builder_.Finish();
+}
+
+inline bool VerifyEndpoint(flatbuffers::Verifier &verifier, const void *obj, Endpoint type) {
+  switch (type) {
+    case Endpoint_NONE: {
+      return true;
+    }
+    case Endpoint_RtspClient: {
+      auto ptr = reinterpret_cast<const RtspClient *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Endpoint_Webrtc: {
+      auto ptr = reinterpret_cast<const Webrtc *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    default: return false;
+  }
+}
+
+inline bool VerifyEndpointVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types) {
+  if (values->size() != types->size()) return false;
+  for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
+    if (!VerifyEndpoint(
+        verifier,  values->Get(i), types->GetEnum<Endpoint>(i))) {
+      return false;
+    }
+  }
+  return true;
 }
 
 inline bool VerifyAny(flatbuffers::Verifier &verifier, const void *obj, Any type) {

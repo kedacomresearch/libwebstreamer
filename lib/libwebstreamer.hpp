@@ -13,7 +13,7 @@ LIBWEBSTREAMER_NS_BEGIN
 
 void initialize(const char* json, size_t size);
 void terminate();
-void schedule_with_user_data(GSourceFunc callback, gpointer user_data);
+void dispatch(GSourceFunc callback, gpointer user_data);
 
 
 LIBWEBSTREAMER_NS_END

@@ -1,0 +1,77 @@
+namespace webstreamer.webrtc;
+
+
+enum SdpRole : int8
+{
+    OFFER,
+    ANSWER,
+    ANY
+}
+
+enum StreamMode : int8
+{
+    SENDONLY,
+	RECVONLY,
+	SENDRECV
+}
+
+
+namespace webstreamer.webrtc.topics;
+
+enum TopicCategory : int8
+{
+    SDP,
+    STATUS
+}
+
+table Endpoint
+{
+    sdp_role   : webstreamer.webrtc.SdpRole;
+    connection : string;
+    group      : string;
+}
+
+table SubscribeItem
+{
+    endpoint : Endpoint;
+    topics   : [TopicCategory];
+}
+
+table Topic
+{
+    category : TopicCategory;
+    sdp      : string;
+    status   : string;  //"connecting", "connected", "disconnected"
+}
+
+table TopicSubscribe
+{
+    items : [SubscribeItem];
+}
+
+table TopicNotification
+{
+    endpoint : Endpoint;
+    topic    : Topic;
+}
+
+table TopicPush
+{
+    endpoint : Endpoint;
+    topic    : Topic;
+}
+
+
+union Any
+{
+    TopicSubscribe,
+    TopicNotification,
+    TopicPush
+}
+
+table TopicAny
+{
+    any : Any;
+}
+
+root_type TopicAny;

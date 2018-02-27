@@ -1,6 +1,6 @@
 #include <owr/owr.h>
 #include <json-glib/json-glib.h>
-#include "webstreamer.hpp"
+#include "libwebstreamer.hpp"
 #include <stdio.h>
 LIBWEBSTREAMER_NS_BEGIN
 
@@ -27,7 +27,7 @@ LIBWEBSTREAMER_NS_BEGIN
 		printf("gstreamer quite.\n");
 	}
 
-	void schedule_with_user_data(GSourceFunc callback, gpointer user_data)
+	void dispatch(GSourceFunc callback, gpointer user_data)
 	{
 		GSource *source = g_idle_source_new();
 

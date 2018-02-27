@@ -72,6 +72,11 @@ namespace libwebstreamer
 
 		void PipelineManager::on_livestream_create(const message::livestream::create_t& message)
 		{
+			if (is_livestream_created(message.pipeline.id))
+			{
+				//TODO: Exception Feedback
+				return;
+			}
 		}
 		void PipelineManager::on_livestream_destroy(const message::livestream::destroy_t& message)
 		{
@@ -87,6 +92,20 @@ namespace libwebstreamer
 		}
 		void PipelineManager::on_livestream_remove_endpoints(const message::livestream::remove_endpoints_t& message)
 		{
+		}
+
+		bool PipelineManager::is_livestream_created(const std::string& id)
+		{
+			auto it = std::find_if(pipelines.begin(), pipelines.end(), [&id](std::shared_ptr<Pipeline>& pipeline) {
+				return pipeline->id() == id;
+			});
+			
+			if (it != pipelines.end())
+			{
+				return true;
+			}
+
+			return false;
 		}
 	}
 }

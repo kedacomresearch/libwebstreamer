@@ -13,8 +13,14 @@ namespace libwebstreamer
 			Pipeline(const message::common::Pipeline& params);
 			virtual ~Pipeline();
 
+		public:
+			const std::string& id() const;
+
 		private:
 			std::vector<std::shared_ptr<Endpoint>> endpoints;
+
+		private:
+			std::string id_;
 		};
 	}
 }

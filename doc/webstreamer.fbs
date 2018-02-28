@@ -5,6 +5,8 @@ namespace webstreamer;
 
 union Any
 {
+    webstreamer.Topic,
+    webstreamer.Subscription,
     //livestreamer
     webstreamer.livestreamer.Create,
     webstreamer.livestreamer.Destroy,

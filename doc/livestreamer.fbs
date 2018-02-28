@@ -1,0 +1,40 @@
+include "common.fbs";
+
+namespace webstreamer.livestreamer;
+
+table Component
+{
+    id : string;
+    source : webstreamer.Endpoint;
+    viewer : [webstreamer.Endpoint];    
+}
+
+table Create
+{
+    id : string;
+    source : webstreamer.Endpoint;
+}
+
+table Destroy
+{
+    id   : string;
+}
+
+table AddViewer
+{
+    id     : string;
+    viewer : [webstreamer.Endpoint];
+
+}
+
+table RemoveViewer
+{
+    endpoint    : [string];  //endpoint id
+}
+
+
+table LiveStreamError
+{
+    code : short;
+    reason : string;
+}

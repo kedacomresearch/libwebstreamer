@@ -1,0 +1,16 @@
+cmake_minimum_required(VERSION 2.8)
+project(libwebstreamer)
+
+
+# NOTE: Code coverage only works on Linux & OSX.
+set(FLATBUFFERS_CODE_COVERAGE OFF)
+set(FLATBUFFERS_BUILD_TESTS OFF)
+set(FLATBUFFERS_INSTALL "Enable the installation of targets." ON)
+set(FLATBUFFERS_BUILD_FLATLIB ON)
+set(FLATBUFFERS_BUILD_FLATC OFF)
+set(FLATBUFFERS_BUILD_FLATHASH  OFF)
+set(FLATBUFFERS_BUILD_GRPCTEST  OFF)
+set(FLATBUFFERS_BUILD_SHAREDLIB OFF)
+set(FLATBUFFERS_BUILD_TESTS OFF)
+add_subdirectory(flatbuffers)
+add_subdirectory(lib)

@@ -1,15 +1,27 @@
 # Overview
-libwebstreamer is plugin (library) of nodejs module webstreamer.
-this plugin , which provide many media streamer operation 
+
+libwebstreamer is plugin (dynamic library) to manipulate media stream.
+
+this plugin is compoosed of compents which provice functions live, push to talk ... 
+
+```
+             +------------------------+
+             |                        |
+stream => [endpoint]               [endpoint]  <==> VLC     
+             |         COMPONENT      |
+          [endpoint]               [endpoint]  <==> WebBrowser
+             |                        |
+             +------------------------+
+```
+
+* component
+
+  top level element, which includes one or more endpoint. internal this is corresponding pipeline of GStreamer
+
+* endpoint
+
+  endpoint is interface for user to fetch or provide stream for outside module.
 
 ## Livestreamer
 
-Livestreamer is set of interfaces that pipes audio/video streams from a source distribute to various viewer via player, such as VLC/Web browser (WebRTC HLS).
 
-```
-                                /-------------\
-                                |          [viewer] ==> [RTSPClient]
-[WebRTC] /[RTSP Server] ==> [source]           |
-                                |          [viewer] ==> [WebRTC (browser) ]
-                                \-------------/
-```

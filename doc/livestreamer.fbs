@@ -2,34 +2,25 @@ include "common.fbs";
 
 namespace webstreamer.livestreamer;
 
-table Component
-{
-    id : string;
-    source : webstreamer.Endpoint;
-    viewer : [webstreamer.Endpoint];    
-}
-
 table Create
 {
-    id : string;
+    name   : string; //name of the livestreamer component
     source : webstreamer.Endpoint;
 }
 
 table Destroy
 {
-    id   : string;
+    name   : string; //name of the livestreamer component
 }
 
 table AddViewer
 {
-    id     : string;
-    viewer : [webstreamer.Endpoint];
-
+    viewer : webstreamer.Endpoint;
 }
 
 table RemoveViewer
 {
-    endpoint    : [string];  //endpoint id
+    endpoint    : string;  //endpoint id
 }
 
 

@@ -3,6 +3,7 @@ namespace webstreamer;
 
 table Channel
 {
+    name       : string;
     codec      : string; //media codec format 
                          // H264/H265/VP8
                          // G711A/OPUS
@@ -12,7 +13,7 @@ table Channel
 
 table Endpoint
 {
-    id         : string;    
+    name       : string;    
     url        : string;
     initiative : bool;      //for WebRTC the initiative one is offer sender
     channel    : [Channel]; //channels of the Endpoint
@@ -24,8 +25,8 @@ table Topic
    type      : string; //type of the topic
                        //WebRTC.JSEP
 
-   component : string; //id of the component
-   endpoint  : string; //id of the endpoint
+   component : string; //name of the component
+   endpoint  : string; //name of the endpoint
 
    content   : string; //topic conent, format defined according type
 
@@ -34,6 +35,6 @@ table Topic
 table Subscription
 {
    type      : [string]; //subscription of the topics
-   component : string;   //id of the component
-   endpoint  : string;   //id of the endpoint    
+   component : string;   //name of the component
+   endpoint  : string;   //name of the endpoint    
 }

@@ -6,19 +6,19 @@ web oriented multimedia backend library
 
 
 ## prerequisites
-  * flatc
-    make sure you have install pkg-config (>=1.8.0)
+  * flatc  
+    make sure you have install flatc (>=1.8.0)
 
-  * pkg-config
+  * pkg-config  
     make sure you have install pkg-config (>=0.29.1)
   
-  * GStreamer and OpenWebRTC and set enviroment
-    for example in windows
+  * GStreamer and OpenWebRTC and set enviroment  
+    for example in windows  
 
     set PKG_CONFIG_LIBDIR=C:\cerbero\x86_64\lib\pkgconfig
 
 
-    then check if all these installation match your requirment
+    then check if all these installation match your requirment  
     ```bash
     $ pkg-config --version
     0.29.1

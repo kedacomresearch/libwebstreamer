@@ -6,15 +6,21 @@ include( AutoCMake.cmake )
 autocmake_pkgconfig_init()
 
 #include_directories(lib)
-include_directories(${CMAKE_INSTALL_PREFIX}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 #add_library( libwebstreamer SHARED lib/source/example.cpp)
-file(GLOB_RECURSE LWS_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.[ch]pp" 
-                              "${CMAKE_CURRENT_SOURCE_DIR}/*.[ch]"
-                              "${CMAKE_CURRENT_SOURCE_DIR}/*.cc")
+file( GLOB_RECURSE _SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp
+                            ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cc )
+							
+file( GLOB_RECURSE _HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl 
+                            ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h 
+                            ${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp)
+
+list(APPEND _FILES ${_SOURCES} ${_HEADERS})
+autocmake_msvc_project_group( _FILES ${CMAKE_CURRENT_SOURCE_DIR})
 
 autocmake_add_library(libwebstreamer  SHARED
-             SOURCES ${LWS_SOURCES}
+             SOURCES ${_FILES}
              MODULES gstreamer-1.0 glib-2.0 json-glib-1.0 openwebrtc-lite-0.3
 			 )
 

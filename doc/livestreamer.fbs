@@ -20,6 +20,7 @@ table AddViewer
 
 table RemoveViewer
 {
+    component   : string;  //component id
     endpoint    : string;  //endpoint id
 }
 

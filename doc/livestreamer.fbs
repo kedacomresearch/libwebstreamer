@@ -15,6 +15,7 @@ table Destroy
 
 table AddViewer
 {
+    component   : string;  //component id
     viewer : webstreamer.Endpoint;
 }
 

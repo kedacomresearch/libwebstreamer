@@ -13,8 +13,10 @@ table Channel
 
 table Endpoint
 {
-    name       : string;    
-    url        : string;
+    name       : string;
+    protocol   : string; //protocol of this endpoint
+                         // RTSP/WEBRTC
+    url        : string; 
     initiative : bool;      //for WebRTC the initiative one is offer sender
     channel    : [Channel]; //channels of the Endpoint
 }

@@ -1,33 +1,57 @@
-
+#include <owr/owr.h>
+#include <json-glib/json-glib.h>
+#include <memory>
+#include <glib.h>
 #include <dispatcher.hpp>
 #include <framework/pipeline_manager.hpp>
 
-#include <memory>
-#include <glib.h>
-
 namespace libwebstreamer
 {
+
+    static GMainContext *libwebstreamer_main_context = NULL;
+
     static std::unique_ptr<GAsyncQueue, decltype(&g_async_queue_unref)> call_queue(g_async_queue_new(), &g_async_queue_unref);
-    static std::unique_ptr<pipeline::PipelineManager> pipeline_manager(new pipeline::PipelineManager());
+    static std::unique_ptr<framework::PipelineManager> pipeline_manager(new framework::PipelineManager());
     static gboolean on_pipeline_manager_dispatch(gpointer pipeline_manager);
 
+    void initialize()
+    {
+        libwebstreamer_main_context = g_main_context_ref_thread_default();
+        owr_init(libwebstreamer_main_context);
+        owr_run_in_background();
+    }
+
+    void terminate()
+    {
+        owr_quit();
+    }
+
+    void dispatch(GSourceFunc callback, gpointer user_data)
+    {
+        GSource *source = g_idle_source_new();
+
+        g_source_set_callback(source, callback, user_data, NULL);
+        g_source_set_priority(source, G_PRIORITY_DEFAULT);
+        g_source_attach(source, libwebstreamer_main_context);
+    }
 
     struct call_t
     {
-        call_t(const void *self, const void *context, const void *data, size_t size)
-            : self_(self), context_(context), data_(data), size_(size)
+        call_t(const void *data, size_t size, callback_fn cb)
+            : data_(data), size_(size), cb_(cb)
         {
         }
 
-        const void *self_;
-        const void *context_;
+        // const void *self_;
+        // const void *context_;
         const void *data_;
         size_t size_;
+        callback_fn cb_;
     };
 
-    void call(const void *self, const void *context, const void *data, size_t size)
+    void call(const void *data, size_t size, callback_fn cb)
     {
-        call_t *call = new call_t(self, context, data, size);
+        call_t *call = new call_t(data, size, cb);
 
         g_async_queue_push(call_queue.get(), call);
 
@@ -37,7 +61,7 @@ namespace libwebstreamer
     gboolean on_pipeline_manager_dispatch(gpointer pipeline_manager)
     {
         call_t *call = (call_t *)g_async_queue_pop(call_queue.get());
-        static_cast<pipeline::PipelineManager *>(pipeline_manager)->call(call->self_, call->context_, call->data_, call->size_);
+        static_cast<framework::PipelineManager *>(pipeline_manager)->call(call->data_, call->size_, call->cb_);
         delete call;
 
         return G_SOURCE_REMOVE;

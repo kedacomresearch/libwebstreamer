@@ -1,9 +1,9 @@
 set PATH=C:\cerbero\build-tools\bin;%PATH%
 set PKG_CONFIG_LIBDIR=C:\cerbero\x86_64\lib\pkgconfig
 
-rd /s/q build
+REM rd /s/q build
 
-mkdir build
+REM mkdir build
 pushd build
 
 cmake .. -G "Visual Studio 14 2015 Win64" -DCMAKE_INSTALL_PREFIX="out" 

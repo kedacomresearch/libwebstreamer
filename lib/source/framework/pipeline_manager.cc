@@ -1,113 +1,140 @@
 #include <fbs/webstreamer_generated.h>
 #include <framework/pipeline_manager.hpp>
-// #include <glib.h>
+#include <application/pipeline/livestream.hpp>
 
 namespace libwebstreamer
 {
-    namespace pipeline
+    namespace framework
     {
-        namespace framewaork
+        using namespace libwebstreamer::util;
+        using namespace libwebstreamer::application::pipeline;
+
+        void PipelineManager::call(const void *data, size_t size, const callback_fn &cb)
         {
-            void PipelineManager::call(const void *self, const void *context, const void *data, size_t size)
+            ::flatbuffers::Verifier verifier((const uint8_t *)data, size);
+            if (webstreamer::VerifyrootBuffer(verifier))
             {
-                ::flatbuffers::Verifier verifier((const uint8_t *)data, size);
-                if (webstreamer::VerifyLiveStreamAnyBuffer(verifier))
+                auto livestream_any = webstreamer::Getroot((const uint8_t *)data);
+                switch (livestream_any->any_type())
                 {
-                    auto livestream_any = webstreamer::GetLiveStreamAny((const uint8_t *)data);
-                    switch (livestream_any->any_type())
+                    case webstreamer::Any_webstreamer_livestreamer_Create:
                     {
-                        case webstreamer::Any_LiveStreamCreate:
-                        {
-                            auto create = livestream_any->any_as_LiveStreamCreate();
-                            message::livestream::create_t internal_create;
-                            flatbuffers::transform(*create, internal_create);
-                            on_livestream_create(internal_create);
-                        }
-                        break;
-                        case webstreamer::Any_LiveStreamDestroy:
-                        {
-                            auto destroy = livestream_any->any_as_LiveStreamDestroy();
-                            message::livestream::destroy_t internal_destroy;
-                            flatbuffers::transform(*destroy, internal_destroy);
-                            on_livestream_destroy(internal_destroy);
-                        }
-                        break;
-                        case webstreamer::Any_LiveStreamAddEndpoint:
-                        {
-                            auto add_endpoint = livestream_any->any_as_LiveStreamAddEndpoint();
-                            message::livestream::add_endpoint_t internal_add_endpoint;
-                            flatbuffers::transform(*add_endpoint, internal_add_endpoint);
-                            on_livestream_add_endpoint(internal_add_endpoint);
-                        }
-                        break;
-                        case webstreamer::Any_LiveStreamRemoveEndpoint:
-                        {
-                            auto remove_endpoint = livestream_any->any_as_LiveStreamRemoveEndpoint();
-                            message::livestream::remove_endpoint_t internal_remove_endpoint;
-                            flatbuffers::transform(*remove_endpoint, internal_remove_endpoint);
-                            on_livestream_remove_endpoint(internal_remove_endpoint);
-                        }
-                        break;
-                        case webstreamer::Any_LiveStreamAddEndpoints:
-                        {
-                            auto add_endpoints = livestream_any->any_as_LiveStreamAddEndpoints();
-                            message::livestream::add_endpoints_t internal_add_endpoints;
-                            flatbuffers::transform(*add_endpoints, internal_add_endpoints);
-                            on_livestream_add_endpoints(internal_add_endpoints);
-                        }
-                        break;
-                        case webstreamer::Any_LiveStreamRemoveEndpoints:
-                        {
-                            auto remove_endpoints = livestream_any->any_as_LiveStreamRemoveEndpoints();
-                            message::livestream::remove_endpoints_t internal_remove_endpoints;
-                            flatbuffers::transform(*remove_endpoints, internal_remove_endpoints);
-                            on_livestream_remove_endpoints(internal_remove_endpoints);
-                        }
-                        break;
-                        default:
-                            g_warn_if_reached();
-                            break;
+                        auto create = livestream_any->any_as_webstreamer_livestreamer_Create();
+                        on_livestream_create(*create, cb);
                     }
+                    break;
+                    case webstreamer::Any_webstreamer_livestreamer_Destroy:
+                    {
+                        auto destroy = livestream_any->any_as_webstreamer_livestreamer_Destroy();
+                        // message::livestream::destroy_t internal_destroy;
+                        // flatbuffers::transform(*destroy, internal_destroy);
+                        // on_livestream_destroy(internal_destroy);
+                    }
+                    break;
+                    case webstreamer::Any_webstreamer_livestreamer_AddViewer:
+                    {
+                        auto add_endpoint = livestream_any->any_as_webstreamer_livestreamer_AddViewer();
+                        // message::livestream::add_endpoint_t internal_add_endpoint;
+                        // flatbuffers::transform(*add_endpoint, internal_add_endpoint);
+                        // on_livestream_add_endpoint(internal_add_endpoint);
+                    }
+                    break;
+                    case webstreamer::Any_webstreamer_livestreamer_RemoveViewer:
+                    {
+                        auto remove_endpoint = livestream_any->any_as_webstreamer_livestreamer_RemoveViewer();
+                        // message::livestream::remove_endpoint_t internal_remove_endpoint;
+                        // flatbuffers::transform(*remove_endpoint, internal_remove_endpoint);
+                        // on_livestream_remove_endpoint(internal_remove_endpoint);
+                    }
+                    break;
+                    default:
+                    {
+                        printf("-----Invalid message-----\n");
+                        std::string reason("Invalid message");
+                        cb(static_cast<int>(status_code::Bad_Request),
+                           static_cast<void *>(const_cast<char *>(reason.c_str())), reason.size());
+                    }
+                    break;
                 }
             }
+        }
 
-            void PipelineManager::on_livestream_create(const message::livestream::create_t &message)
+        void PipelineManager::on_livestream_create(const webstreamer::livestreamer::Create &message, const callback_fn &cb)
+        {
+            std::string stream_id(message.name()->c_str());
+            if (is_livestream_created(stream_id))
             {
-                if (is_livestream_created(message.pipeline.id))
+                //already exists
+                std::string reason("The stream: " + stream_id + " is already existed!");
+                cb(static_cast<int>(status_code::Conflict),
+                   static_cast<void *>(const_cast<char *>(reason.c_str())), reason.size());
+                return;
+            }
+
+            // create stream pipeline
+            std::shared_ptr<LiveStream> livestream = std::make_shared<LiveStream>(stream_id);
+            // set stream encoding
+            const webstreamer::Endpoint *endpoint = message.source();
+            for (auto it : *(endpoint->channel()))
+            {
+                std::string codec(((webstreamer::Channel *)it)->name()->c_str());
+                if (codec == "video")
                 {
-                    //TODO: Exception Feedback
+                    livestream->video_encoding() = codec;
+                }
+                else if (codec == "audio")
+                {
+                    livestream->audio_encoding() = codec;
+                }
+                else
+                {
+                    std::string reason("The codec: " + codec + " is invalid!");
+                    cb(static_cast<int>(status_code::Bad_Request),
+                       static_cast<void *>(const_cast<char *>(reason.c_str())), reason.size());
                     return;
                 }
             }
-            void PipelineManager::on_livestream_destroy(const message::livestream::destroy_t &message)
+
+            // create source endpoint
+            std::string endpoint_id(endpoint->name()->c_str());
+            std::string endpoint_type(endpoint->protocol()->c_str());
+            std::shared_ptr<Endpoint> ep = MakeEndpoint(endpoint_type, endpoint_id, livestream);
+
+            // add endpoint to pipeline
+            if (!livestream->add_endpoint(ep))
             {
-            }
-            void PipelineManager::on_livestream_add_endpoint(const message::livestream::add_endpoint_t &message)
-            {
-            }
-            void PipelineManager::on_livestream_remove_endpoint(const message::livestream::remove_endpoint_t &message)
-            {
-            }
-            void PipelineManager::on_livestream_add_endpoints(const message::livestream::add_endpoints_t &message)
-            {
-            }
-            void PipelineManager::on_livestream_remove_endpoints(const message::livestream::remove_endpoints_t &message)
-            {
+                std::string reason("Add endpoint failed!");
+                cb(static_cast<int>(status_code::Bad_Request),
+                   static_cast<void *>(const_cast<char *>(reason.c_str())), reason.size());
+                return;
             }
 
-            bool PipelineManager::is_livestream_created(const std::string &id)
+            // add pipeline to pipeline manager
+            pipelines.push_back(livestream);
+            cb(0, NULL, 0);
+        }
+        void PipelineManager::on_livestream_destroy(const webstreamer::livestreamer::Destroy &message, const callback_fn &cb)
+        {
+        }
+        void PipelineManager::on_livestream_add_endpoint(const webstreamer::livestreamer::AddViewer &message, const callback_fn &cb)
+        {
+        }
+        void PipelineManager::on_livestream_remove_endpoint(const webstreamer::livestreamer::RemoveViewer &message, const callback_fn &cb)
+        {
+        }
+
+        bool PipelineManager::is_livestream_created(const std::string &id)
+        {
+            auto it = std::find_if(pipelines.begin(), pipelines.end(), [&id](std::shared_ptr<Pipeline> &pipeline) {
+                return pipeline->id() == id;
+            });
+
+            if (it != pipelines.end())
             {
-                auto it = std::find_if(pipelines.begin(), pipelines.end(), [&id](std::shared_ptr<Pipeline> &pipeline) {
-                    return pipeline->id() == id;
-                });
-
-                if (it != pipelines.end())
-                {
-                    return true;
-                }
-
-                return false;
+                return true;
             }
+
+            return false;
         }
     }
 }

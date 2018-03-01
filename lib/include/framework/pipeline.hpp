@@ -1,30 +1,68 @@
 #ifndef LIBWEBSTREAMER_FRAMEWORK_PIPELINE_HPP
 #define LIBWEBSTREAMER_FRAMEWORK_PIPELINE_HPP
 
-#include <message/common.hpp>
-#include "endpoint.hpp"
+// #include <message/common.hpp>
+#include <framework/endpoint.hpp>
 namespace libwebstreamer
 {
-    namespace pipeline
+    namespace framework
     {
-        namespace framework
+        class Pipeline
         {
-            class Pipeline
+        public:
+            Pipeline(const std::string &id);
+            virtual ~Pipeline();
+
+            bool add_endpoint(const std::shared_ptr<Endpoint> endpoint);
+            bool remove_endpoint(const std::string &endpoint_id);
+            virtual void add_pipe_joint(GstElement *upstream_joint) = 0;
+
+            const std::string &id() const
             {
-            public:
-                Pipeline(const message::common::Pipeline &params);
-                virtual ~Pipeline();
-
-            public:
-                const std::string &id() const;
-
-            private:
-                std::vector<std::shared_ptr<Endpoint>> endpoints;
-
-            private:
-                std::string id_;
+                return id_;
             };
-        }
+
+            const std::string &video_encoding() const
+            {
+                return video_encoding_;
+            }
+            std::string &video_encoding()
+            {
+                return video_encoding_;
+            }
+            const std::string &audio_encoding() const
+            {
+                return audio_encoding_;
+            }
+            std::string &audio_encoding()
+            {
+                return audio_encoding_;
+            }
+
+        protected:
+            virtual bool on_add_endpoint(const std::shared_ptr<Endpoint> endpoint) = 0;
+            virtual bool on_remove_endpoint(const std::shared_ptr<Endpoint> endpoint) = 0;
+            virtual bool MessageHandler(GstMessage *message)
+            {
+                return true;
+            }
+            GstElement *pipeline()
+            {
+                return pipeline_;
+            }
+
+            std::string id_;
+            std::string video_encoding_;
+            std::string audio_encoding_;
+            std::vector<std::shared_ptr<Endpoint>> endpoints;
+            GstElement *pipeline_;
+
+        private:
+            //add for monitoring error messages from elements
+            GstBus *bus_;
+            guint bus_watcher_;
+            static gboolean MessageHandler_(GstBus *bus, GstMessage *message, gpointer data);
+        };
     }
 }
 

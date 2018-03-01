@@ -1,16 +1,16 @@
 #include <stdio.h>
 #include <flatbuffers/flatbuffers.h>
-#include <owr/owr.h>
-#include <json-glib/json-glib.h>
 
-#include "node_plugin_interface.h"
+
+#include <node_plugin_interface.h>
 #include <dispatcher.hpp>
 
 
 
 #define __VERSION__ 0.1.0
 
-static GMainContext *libwebstreamer_main_context = NULL;
+static const char *default_res[] = {"Callback successfully!",
+                                    "Callback failed!"};
 
 static void init(const void *self, const void *data, size_t size, void (*cb)(const void *self, int status, char *msg))
 {
@@ -26,12 +26,8 @@ static void init(const void *self, const void *data, size_t size, void (*cb)(con
         //todo...
     }
     printf("gstreamer init!\n");
-    libwebstreamer_main_context = g_main_context_ref_thread_default();
-    owr_init(libwebstreamer_main_context);
-    owr_run_in_background();
+    libwebstreamer::initialize();
     printf("gstreamer init done.\n");
-
-
 
     if (cb)
     {
@@ -44,41 +40,46 @@ static void init(const void *self, const void *data, size_t size, void (*cb)(con
 static void call(const void *self, const void *context,
                  const void *data, size_t size)
 {
-    libwebstreamer::call(self, context, data, size);
-    //static int counter = 0;
-    //node_plugin_interface_t *iface = (node_plugin_interface_t *)self;
-    //if (iface->call_return)
-    //{
-    //	int status = 0;
-    //	char retval[256];
-    //
-    //	try
-    //	{
-    //		std::string expr((const char *)data, size);
-    //		int result = calculator::eval(expr);
-    //		sprintf(retval, "%d", result);
-    //	}
-    //	catch (calculator::error &e)
-    //	{
-    //		strcpy(retval, e.what());
-    //		status = 1;
-    //	}
-    //
-    //	iface->call_return(self, context, retval, strlen(retval) + 1, status, NULL, NULL);
-    //}
-    //
-    //counter++;
-    //if (iface->notify)
-    //{
-    //	char log[256];
-    //	sprintf(log, "* %d request has been procced.", counter);
-    //	iface->notify(self, log, strlen(log) + 1, NULL, NULL);
-    //}
+    static int counter = 0;
+    node_plugin_interface_t *iface = (node_plugin_interface_t *)self;
+    if (iface->call_return)
+    {
+        libwebstreamer::call(data, size,
+                             [iface, self, context](int status, void *cb_data, size_t cb_szie) {
+                                 if (cb_data == NULL)
+                                 {
+                                     if (status == 0)
+                                     {
+                                         iface->call_return(self, context, default_res[0], strlen(default_res[0]) + 1, status, NULL, NULL);
+                                         return;
+                                     }
+                                     else
+                                     {
+                                         iface->call_return(self, context, default_res[1], strlen(default_res[1]) + 1, status, NULL, NULL);
+                                         return;
+                                     }
+                                 }
+                                 iface->call_return(self, context, cb_data, cb_szie, status, NULL, NULL);
+                             });
+    }
+    else
+    {
+        printf("Warning: No callback!\n");
+        // todo...
+    }
+
+    counter++;
+    if (iface->notify)
+    {
+        char log[256];
+        sprintf(log, "* %d request has been procced.", counter);
+        iface->notify(self, log, strlen(log) + 1, NULL, NULL);
+    }
 }
 
 static void terminate(const void *self, void (*cb)(const void *self, int status, char *msg))
 {
-    owr_quit();
+    libwebstreamer::terminate();
     printf("gstreamer quite.\n");
     if (cb)
     {
@@ -92,11 +93,3 @@ NODE_PLUGIN_IMPL(__VERSION__, init, call, terminate)
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////
-void dispatch(GSourceFunc callback, gpointer user_data)
-{
-    GSource *source = g_idle_source_new();
-
-    g_source_set_callback(source, callback, user_data, NULL);
-    g_source_set_priority(source, G_PRIORITY_DEFAULT);
-    g_source_attach(source, libwebstreamer_main_context);
-}

@@ -1,9 +1,14 @@
 #ifndef LIBWEBSTREAMER_DISPATCHER_HPP
 #define LIBWEBSTREAMER_DISPATCHER_HPP
 
+#include<functional>
+
 namespace libwebstreamer
 {
-    void call(const void *self, const void *context, const void *data, size_t size);
+    void initialize();
+    void terminate();
+    void call(const void *data, size_t size,
+              std::function<void(int status, void *data, size_t size)> cb);
 }
 
 #endif

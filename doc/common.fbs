@@ -3,7 +3,8 @@ namespace webstreamer;
 
 table Channel
 {
-    name       : string;
+    name       : string; //channel type
+                         // video/audio
     codec      : string; //media codec format 
                          // H264/H265/VP8
                          // G711A/OPUS
@@ -16,7 +17,7 @@ table Endpoint
     name       : string;
     protocol   : string; //protocol of this endpoint
                          // RTSP/WEBRTC
-    url        : string; 
+    url        : string; //rtsp source url
     initiative : bool;      //for WebRTC the initiative one is offer sender
     channel    : [Channel]; //channels of the Endpoint
 }

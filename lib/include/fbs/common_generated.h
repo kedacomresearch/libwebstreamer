@@ -18,9 +18,13 @@ struct Subscription;
 
 struct Channel FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
-    VT_CODEC = 4,
-    VT_MODE = 6
+    VT_NAME = 4,
+    VT_CODEC = 6,
+    VT_MODE = 8
   };
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
   const flatbuffers::String *codec() const {
     return GetPointer<const flatbuffers::String *>(VT_CODEC);
   }
@@ -29,6 +33,8 @@ struct Channel FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.Verify(name()) &&
            VerifyOffset(verifier, VT_CODEC) &&
            verifier.Verify(codec()) &&
            VerifyOffset(verifier, VT_MODE) &&
@@ -40,6 +46,9 @@ struct Channel FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct ChannelBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(Channel::VT_NAME, name);
+  }
   void add_codec(flatbuffers::Offset<flatbuffers::String> codec) {
     fbb_.AddOffset(Channel::VT_CODEC, codec);
   }
@@ -60,33 +69,41 @@ struct ChannelBuilder {
 
 inline flatbuffers::Offset<Channel> CreateChannel(
     flatbuffers::FlatBufferBuilder &_fbb,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<flatbuffers::String> codec = 0,
     flatbuffers::Offset<flatbuffers::String> mode = 0) {
   ChannelBuilder builder_(_fbb);
   builder_.add_mode(mode);
   builder_.add_codec(codec);
+  builder_.add_name(name);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Channel> CreateChannelDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
+    const char *name = nullptr,
     const char *codec = nullptr,
     const char *mode = nullptr) {
   return webstreamer::CreateChannel(
       _fbb,
+      name ? _fbb.CreateString(name) : 0,
       codec ? _fbb.CreateString(codec) : 0,
       mode ? _fbb.CreateString(mode) : 0);
 }
 
 struct Endpoint FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
-    VT_ID = 4,
-    VT_URL = 6,
-    VT_INITIATIVE = 8,
-    VT_CHANNEL = 10
+    VT_NAME = 4,
+    VT_PROTOCOL = 6,
+    VT_URL = 8,
+    VT_INITIATIVE = 10,
+    VT_CHANNEL = 12
   };
-  const flatbuffers::String *id() const {
-    return GetPointer<const flatbuffers::String *>(VT_ID);
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  }
+  const flatbuffers::String *protocol() const {
+    return GetPointer<const flatbuffers::String *>(VT_PROTOCOL);
   }
   const flatbuffers::String *url() const {
     return GetPointer<const flatbuffers::String *>(VT_URL);
@@ -99,8 +116,10 @@ struct Endpoint FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_ID) &&
-           verifier.Verify(id()) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.Verify(name()) &&
+           VerifyOffset(verifier, VT_PROTOCOL) &&
+           verifier.Verify(protocol()) &&
            VerifyOffset(verifier, VT_URL) &&
            verifier.Verify(url()) &&
            VerifyField<uint8_t>(verifier, VT_INITIATIVE) &&
@@ -114,8 +133,11 @@ struct Endpoint FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct EndpointBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_id(flatbuffers::Offset<flatbuffers::String> id) {
-    fbb_.AddOffset(Endpoint::VT_ID, id);
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(Endpoint::VT_NAME, name);
+  }
+  void add_protocol(flatbuffers::Offset<flatbuffers::String> protocol) {
+    fbb_.AddOffset(Endpoint::VT_PROTOCOL, protocol);
   }
   void add_url(flatbuffers::Offset<flatbuffers::String> url) {
     fbb_.AddOffset(Endpoint::VT_URL, url);
@@ -140,27 +162,31 @@ struct EndpointBuilder {
 
 inline flatbuffers::Offset<Endpoint> CreateEndpoint(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> id = 0,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
+    flatbuffers::Offset<flatbuffers::String> protocol = 0,
     flatbuffers::Offset<flatbuffers::String> url = 0,
     bool initiative = false,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<Channel>>> channel = 0) {
   EndpointBuilder builder_(_fbb);
   builder_.add_channel(channel);
   builder_.add_url(url);
-  builder_.add_id(id);
+  builder_.add_protocol(protocol);
+  builder_.add_name(name);
   builder_.add_initiative(initiative);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Endpoint> CreateEndpointDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *id = nullptr,
+    const char *name = nullptr,
+    const char *protocol = nullptr,
     const char *url = nullptr,
     bool initiative = false,
     const std::vector<flatbuffers::Offset<Channel>> *channel = nullptr) {
   return webstreamer::CreateEndpoint(
       _fbb,
-      id ? _fbb.CreateString(id) : 0,
+      name ? _fbb.CreateString(name) : 0,
+      protocol ? _fbb.CreateString(protocol) : 0,
       url ? _fbb.CreateString(url) : 0,
       initiative,
       channel ? _fbb.CreateVector<flatbuffers::Offset<Channel>>(*channel) : 0);

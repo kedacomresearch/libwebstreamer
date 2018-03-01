@@ -1,25 +1,59 @@
 #ifndef LIBWEBSTREAMER_FRAMEWORK_ENDPOINT_HPP
 #define LIBWEBSTREAMER_FRAMEWORK_ENDPOINT_HPP
 
-#include <message/common.hpp>
+#include <vector>
+#include <list>
+#include <map>
+#include <string>
+#include <algorithm>
+#include <gst/gst.h>
+#include <fbs/webstreamer_generated.h>
+#include <utils/status_code.hpp>
 
 namespace libwebstreamer
 {
-    namespace pipeline
+    namespace framework
     {
-        namespace framework
+        class Pipeline;
+        enum EndpointType
         {
-            class Pipeline;
-            class Endpoint
+            RTSP,
+            WEBRTC
+        };
+        class Endpoint
+        {
+        public:
+            // Endpoint(const message::common::Endpoint &params);
+            Endpoint(const std::string &id, const std::string &type, const std::shared_ptr<Pipeline> pipeline_owner);
+            virtual ~Endpoint()
             {
-            public:
-                Endpoint(const message::common::Endpoint &params);
-                virtual ~Endpoint();
+            }
 
-            private:
-                std::weak_ptr<Pipeline> pipeline;//owner pipeline
-            };
-        }
+            const std::string &id() const
+            {
+                return id_;
+            }
+            const EndpointType type() const
+            {
+                return type_;
+            }
+
+            virtual void add_to_pipeline() = 0;
+            virtual void remove_from_pipeline() = 0;
+
+        protected:
+            const std::weak_ptr<Pipeline> pipeline_owner() const
+            {
+                return pipeline_owner_;
+            }
+
+        private:
+            std::string id_;
+            EndpointType type_;
+            std::weak_ptr<Pipeline> pipeline_owner_;//owner pipeline
+        };
+
+        std::shared_ptr<Endpoint> MakeEndpoint(const std::string &type, const std::string &id, const std::shared_ptr<Pipeline> pipeline_owner);
     }
 }
 

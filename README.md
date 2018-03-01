@@ -39,7 +39,7 @@ git clone https://github.com/kedacomresearch/libwebstreamer.git --recursive
 ## update flatbuffers defination (optional)
 if you update sheme of the flatbuffers in doc/*.fbs, do as follows
 
-flatc -o ./lib/fbs --cpp ./doc/*.fbs --include-prefix fbs
+flatc -o ./lib/include/fbs --cpp ./doc/*.fbs --include-prefix fbs
 
 ## build
 

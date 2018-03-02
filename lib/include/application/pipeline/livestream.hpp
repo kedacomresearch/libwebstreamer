@@ -17,14 +17,24 @@ namespace libwebstreamer
                 ~LiveStream();
                 void add_pipe_joint(GstElement *upstream_joint);
 
+                const std::string &rtsp_url() const
+                {
+                    return rtsp_url_;
+                }
+                std::string &rtsp_url()
+                {
+                    return rtsp_url_;
+                }
+
             protected:
                 virtual bool on_add_endpoint(const std::shared_ptr<libwebstreamer::framework::Endpoint> endpoint);
                 virtual bool on_remove_endpoint(const std::shared_ptr<libwebstreamer::framework::Endpoint> endpoint);
                 virtual bool MessageHandler(GstMessage *msg);
 
             private:
-                GstElement *video_tee;
-                GstElement *audio_tee;
+                GstElement *video_tee_;
+                GstElement *audio_tee_;
+                std::string rtsp_url_;
             };
         }
     }

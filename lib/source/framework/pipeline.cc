@@ -1,6 +1,4 @@
-#include <libwebstreamer/framework/pipeline.hpp>
-
-
+#include <framework/pipeline.hpp>
 
 namespace libwebstreamer
 {
@@ -16,12 +14,12 @@ namespace libwebstreamer
             g_warn_if_fail(pipeline_);
 
             bus_ = gst_pipeline_get_bus(GST_PIPELINE(pipeline_));
-            bus_watcher_ = gst_bus_add_watch(bus_, MessageHandler_, this);
+            bus_watcher_ = gst_bus_add_watch(bus_, message_handler, this);
             g_warn_if_fail(bus_);
             g_warn_if_fail(bus_watcher_);
         }
 
-        gboolean Pipeline::MessageHandler_(GstBus *bus, GstMessage *message, gpointer data)
+        gboolean Pipeline::message_handler(GstBus *bus, GstMessage *message, gpointer data)
         {
             Pipeline *This = static_cast<Pipeline *>(data);
             return This->MessageHandler(message);
@@ -37,41 +35,41 @@ namespace libwebstreamer
 
             gst_element_set_state(pipeline_, GST_STATE_NULL);
 
-            // for (int i = 0; i < endpoints.size(); i++)
-            //     g_assert(endpoints[i].unique());
+            // for (int i = 0; i < endpoints_.size(); i++)
+            //     g_assert(endpoints_[i].unique());
             //并发量高时，可能先收到delete pipeline的请求，再收到delete endpoint的请求
             //相对于remove_endpoint函数，这里少了on_remove_endpoint( * (*it) );这一步
             //但由于on_remove_endpoint( * (*it) );是虚函数，不能在析构函数中调用，所以需要分别在对应pipeline派生类中调用（例如在livestream的析构函数中调用）
-            endpoints.erase(endpoints.begin(), endpoints.end());
+            endpoints_.erase(endpoints_.begin(), endpoints_.end());
 
             gst_object_unref(pipeline_);
         }
 
         bool Pipeline::add_endpoint(const std::shared_ptr<Endpoint> endpoint)
         {
-            auto it = std::find_if(endpoints.begin(), endpoints.end(), [&endpoint](std::shared_ptr<Endpoint> &ep) {
+            auto it = std::find_if(endpoints_.begin(), endpoints_.end(), [&endpoint](std::shared_ptr<Endpoint> &ep) {
                 return endpoint->id() == ep->id();
             });
-            if (it != endpoints.end())
+            if (it != endpoints_.end())
             {
                 return false;
             }
-            endpoints.push_back(endpoint);
+            endpoints_.push_back(endpoint);
             return on_add_endpoint(endpoint);
         }
 
         bool Pipeline::remove_endpoint(const std::string &endpoint_id)
         {
-            auto it = std::find_if(endpoints.begin(), endpoints.end(), [&endpoint_id](std::shared_ptr<Endpoint> &ep) {
+            auto it = std::find_if(endpoints_.begin(), endpoints_.end(), [&endpoint_id](std::shared_ptr<Endpoint> &ep) {
                 return endpoint_id == ep->id();
             });
-            if (it == endpoints.end())
+            if (it == endpoints_.end())
             {
                 return false;
             }
             // g_assert(it->unique());
-            on_remove_endpoint(*(*it));
-            endpoints.erase(it);
+            on_remove_endpoint(*it);
+            endpoints_.erase(it);
             return true;
         }
 

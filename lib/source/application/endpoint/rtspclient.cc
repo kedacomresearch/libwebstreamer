@@ -1,4 +1,4 @@
-#include <application/endpoint/rtspclinet.hpp>
+#include <application/endpoint/rtspclient.hpp>
 
 namespace libwebstreamer
 {
@@ -6,7 +6,8 @@ namespace libwebstreamer
     {
         namespace endpoint
         {
-            namespace mediaservice = ::webstreamer::transport::mediaservice;
+            // namespace mediaservice = ::webstreamer::transport::mediaservice;
+            using namespace libwebstreamer;
 
             RtspClient::RtspClient(const std::string &id, const std::string &type,
                                    const std::shared_ptr<libwebstreamer::framework::Pipeline> pipeline_owner)
@@ -17,12 +18,13 @@ namespace libwebstreamer
 
             void RtspClient::initialize(const std::string &url)
             {
-                rtspsrc = gst_element_factory_make("rtspsrc", "rtspsrc");
+                rtspsrc_ = gst_element_factory_make("rtspsrc", "rtspsrc");
 
-                configuration::PortRange port_range;
-                webstreamer::configuration::query_rtspsrc_port_range(port_range);
-                g_object_set(G_OBJECT(rtspsrc), "location", url.c_str(),
-                             "port-range", webstreamer::configuration::to_string(port_range), NULL);
+                // configuration::PortRange port_range;
+                // webstreamer::configuration::query_rtspsrc_port_range(port_range);
+                // g_object_set(G_OBJECT(rtspsrc), "location", url.c_str(),
+                //              "port-range", webstreamer::configuration::to_string(port_range), NULL);
+                g_object_set(G_OBJECT(rtspsrc_), "location", url.c_str(), NULL);
             }
 
             void RtspClient::on_rtspsrc_pad_added(GstElement *src, GstPad *src_pad, gpointer rtspclient)
@@ -34,14 +36,14 @@ namespace libwebstreamer
 
                 if (g_str_equal(g_value_get_string(media_type), "video"))
                 {
-                    GstPad *sink_pad = gst_element_get_static_pad(GST_ELEMENT_CAST(rtsp_client->rtpdepay_video), "sink");
+                    GstPad *sink_pad = gst_element_get_static_pad(GST_ELEMENT_CAST(rtsp_client->rtpdepay_video_), "sink");
                     GstPadLinkReturn ret = gst_pad_link(src_pad, sink_pad);
                     g_warn_if_fail(ret == GST_PAD_LINK_OK);
                     gst_object_unref(sink_pad);
                 }
                 else if (g_str_equal(g_value_get_string(media_type), "audio"))
                 {
-                    GstPad *sink_pad = gst_element_get_static_pad(GST_ELEMENT_CAST(rtsp_client->rtpaudiodepay), "sink");
+                    GstPad *sink_pad = gst_element_get_static_pad(GST_ELEMENT_CAST(rtsp_client->rtpaudiodepay_), "sink");
                     GstPadLinkReturn ret = gst_pad_link(src_pad, sink_pad);
                     g_warn_if_fail(ret == GST_PAD_LINK_OK);
                     gst_object_unref(sink_pad);
@@ -52,59 +54,63 @@ namespace libwebstreamer
                 }
             }
 
-            void RtspClient::on_add_to_pipeline()
+            void RtspClient::add_to_pipeline()
             {
-                switch (pipeline_owner->video_encoding_)
+                VideoEncodingType video_codec = get_video_encoding_type(pipeline_owner().lock()->video_encoding());
+                switch (video_codec)
                 {
-                    case mediaservice::VideoEncodingType::VIDEO_TYPE_H264:
-                        rtpdepay_video = gst_element_factory_make("rtph264depay", "depay");
-                        parse_video = gst_element_factory_make("h264parse", "parse");
+                    case VideoEncodingType::H264:
+                        rtpdepay_video_ = gst_element_factory_make("rtph264depay", "depay");
+                        parse_video_ = gst_element_factory_make("h264parse", "parse");
                         break;
-                    case mediaservice::VideoEncodingType::VIDEO_TYPE_H265:
-                        rtpdepay_video = gst_element_factory_make("rtph265depay", "depay");
-                        parse_video = gst_element_factory_make("h265parse", "parse");
+                    case VideoEncodingType::H265:
+                        rtpdepay_video_ = gst_element_factory_make("rtph265depay", "depay");
+                        parse_video_ = gst_element_factory_make("h265parse", "parse");
                         break;
                     default:
                         g_warn_if_reached();
+                        //todo...
                         break;
                 }
-                g_warn_if_fail(rtpdepay_video && parse_video);
+                g_warn_if_fail(rtpdepay_video_ && parse_video_);
 
-                gst_bin_add_many(GST_BIN(pipeline_owner().pipeline()), rtspsrc, rtpdepay_video, parse_video, NULL);
-                g_signal_connect(rtspsrc, "pad-added", (GCallback)on_rtspsrc_pad_added, this);
-                g_warn_if_fail(gst_element_link(rtpdepay_video, parse_video));
+                gst_bin_add_many(GST_BIN(pipeline_owner().lock()->pipeline()), rtspsrc_, rtpdepay_video_, parse_video_, NULL);
+                g_signal_connect(rtspsrc_, "pad-added", (GCallback)on_rtspsrc_pad_added, this);
+                g_warn_if_fail(gst_element_link(rtpdepay_video_, parse_video_));
 
-                switch (pipeline_owner->audio_encoding_)
+                AudioEncodingType audio_codec = get_audio_encoding_type(pipeline_owner().lock()->audio_encoding());
+                switch (audio_codec)
                 {
-                    case mediaservice::AudioEncodingType::AUDIO_TYPE_PCMA:
-                        rtpaudiodepay = gst_element_factory_make("rtppcmadepay", "audio-depay");
+                    case AudioEncodingType::PCMA:
+                        rtpaudiodepay_ = gst_element_factory_make("rtppcmadepay", "audio-depay");
                         break;
-                    case mediaservice::AudioEncodingType::AUDIO_TYPE_PCMU:
-                        rtpaudiodepay = gst_element_factory_make("rtppcmudepay", "audio-depay");
+                    case AudioEncodingType::PCMU:
+                        rtpaudiodepay_ = gst_element_factory_make("rtppcmudepay", "audio-depay");
                         break;
-                    case mediaservice::VideoEncodingType::VIDEO_TYPE_H265:
-                        rtpaudiodepay = gst_element_factory_make("rtpopusdepay", "audio-depay");
+                    case VideoEncodingType::H265:
+                        rtpaudiodepay_ = gst_element_factory_make("rtpopusdepay", "audio-depay");
                         break;
                     default:
                         g_message("No Audio!");
+                        //todo...
                         break;
                 }
 
 #ifdef ENABLE_AUDIO_CODEC
                 alawdec = gst_element_factory_make("alawdec", "alawdec");
-                g_warn_if_fail(rtpaudiodepay && alawdec);
-                gst_bin_add_many(GST_BIN(pipeline_owner().pipeline()), rtpaudiodepay, alawdec, NULL);
-                g_warn_if_fail(gst_element_link(rtpaudiodepay, alawdec));
+                g_warn_if_fail(rtpaudiodepay_ && alawdec);
+                gst_bin_add_many(GST_BIN(pipeline_owner().lock()->pipeline()), rtpaudiodepay_, alawdec, NULL);
+                g_warn_if_fail(gst_element_link(rtpaudiodepay_, alawdec));
 #else
-                g_warn_if_fail(rtpaudiodepay);
-                gst_bin_add_many(GST_BIN(pipeline_owner().pipeline()), rtpaudiodepay, NULL);
+                g_warn_if_fail(rtpaudiodepay_);
+                gst_bin_add_many(GST_BIN(pipeline_owner().lock()->pipeline()), rtpaudiodepay_, NULL);
 #endif
             }
 
-            void RtspClient::on_remove_from_pipeline()
+            void RtspClient::remove_from_pipeline()
             {
-                gst_bin_remove_many(GST_BIN(pipeline_owner().pipeline()), rtspsrc, rtpdepay_video, parse_video, NULL);
-                gst_bin_remove_many(GST_BIN(pipeline_owner().pipeline()), rtpaudiodepay, NULL);
+                gst_bin_remove_many(GST_BIN(pipeline_owner().lock()->pipeline()), rtspsrc_, rtpdepay_video_, parse_video_, NULL);
+                gst_bin_remove_many(GST_BIN(pipeline_owner().lock()->pipeline()), rtpaudiodepay_, NULL);
             }
         }
     }

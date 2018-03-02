@@ -38,6 +38,10 @@ namespace libwebstreamer
             {
                 return audio_encoding_;
             }
+            GstElement *pipeline()
+            {
+                return pipeline_;
+            }
 
         protected:
             virtual bool on_add_endpoint(const std::shared_ptr<Endpoint> endpoint) = 0;
@@ -46,22 +50,18 @@ namespace libwebstreamer
             {
                 return true;
             }
-            GstElement *pipeline()
-            {
-                return pipeline_;
-            }
 
             std::string id_;
             std::string video_encoding_;
             std::string audio_encoding_;
-            std::vector<std::shared_ptr<Endpoint>> endpoints;
+            std::vector<std::shared_ptr<Endpoint>> endpoints_;
             GstElement *pipeline_;
 
         private:
             //add for monitoring error messages from elements
             GstBus *bus_;
             guint bus_watcher_;
-            static gboolean MessageHandler_(GstBus *bus, GstMessage *message, gpointer data);
+            static gboolean message_handler(GstBus *bus, GstMessage *message, gpointer data);
         };
     }
 }

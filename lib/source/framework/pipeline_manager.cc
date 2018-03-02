@@ -20,7 +20,7 @@ namespace libwebstreamer
                     case webstreamer::Any_webstreamer_livestreamer_Create:
                     {
                         auto create = livestream_any->any_as_webstreamer_livestreamer_Create();
-                        on_livestream_create(*create, cb);
+                        create_livestream(*create, cb);
                     }
                     break;
                     case webstreamer::Any_webstreamer_livestreamer_Destroy:
@@ -59,7 +59,7 @@ namespace libwebstreamer
             }
         }
 
-        void PipelineManager::on_livestream_create(const webstreamer::livestreamer::Create &message, const callback_fn &cb)
+        void PipelineManager::create_livestream(const webstreamer::livestreamer::Create &message, const callback_fn &cb)
         {
             std::string stream_id(message.name()->c_str());
             if (is_livestream_created(stream_id))
@@ -94,6 +94,8 @@ namespace libwebstreamer
                     return;
                 }
             }
+            // set rtsp source url
+            livestream->rtsp_url() = *(endpoint->url()->c_str());
 
             // create source endpoint
             std::string endpoint_id(endpoint->name()->c_str());
@@ -110,26 +112,44 @@ namespace libwebstreamer
             }
 
             // add pipeline to pipeline manager
-            pipelines.push_back(livestream);
+            pipelines_.push_back(livestream);
             cb(0, NULL, 0);
+            g_message("---------create_live_stream %s---------\n", stream_id.c_str());
         }
-        void PipelineManager::on_livestream_destroy(const webstreamer::livestreamer::Destroy &message, const callback_fn &cb)
+        void PipelineManager::destroy_livestream(const webstreamer::livestreamer::Destroy &message, const callback_fn &cb)
+        {
+            std::string stream_id(message.name()->c_str());
+            auto it = std::find_if(pipelines_.begin(), pipelines_.end(), [&stream_id](std::shared_ptr<Pipeline> &pipeline) {
+                return pipeline->id() == stream_id;
+            });
+
+            if (it == pipelines_.end())
+            {
+                std::string reason("LiveStream Not Found!");
+                cb(static_cast<int>(status_code::Not_Found),
+                   static_cast<void *>(const_cast<char *>(reason.c_str())), reason.size());
+                return;
+            }
+
+            this->pipelines_.erase(it);
+
+            cb(0, NULL, 0);
+            g_message("---------delete_live_stream %s---------\n", stream_id.c_str());
+        }
+        void PipelineManager::add_endpoint_in_livestream(const webstreamer::livestreamer::AddViewer &message, const callback_fn &cb)
         {
         }
-        void PipelineManager::on_livestream_add_endpoint(const webstreamer::livestreamer::AddViewer &message, const callback_fn &cb)
-        {
-        }
-        void PipelineManager::on_livestream_remove_endpoint(const webstreamer::livestreamer::RemoveViewer &message, const callback_fn &cb)
+        void PipelineManager::remove_endpoint_in_livestream(const webstreamer::livestreamer::RemoveViewer &message, const callback_fn &cb)
         {
         }
 
         bool PipelineManager::is_livestream_created(const std::string &id)
         {
-            auto it = std::find_if(pipelines.begin(), pipelines.end(), [&id](std::shared_ptr<Pipeline> &pipeline) {
+            auto it = std::find_if(pipelines_.begin(), pipelines_.end(), [&id](std::shared_ptr<Pipeline> &pipeline) {
                 return pipeline->id() == id;
             });
 
-            if (it != pipelines.end())
+            if (it != pipelines_.end())
             {
                 return true;
             }

@@ -1,16 +1,14 @@
 #include <framework/endpoint.hpp>
 #include <application/endpoint/rtspclient.hpp>
+#include <application/pipeline/livestream.hpp>
 
 namespace libwebstreamer
 {
     namespace framework
     {
-        static std::map<std::string, EndpointType> type_map = {{"rtsp", EndpointType::RTSP},
-                                                               {"webrtc", EndpointType::WEBRTC}};
-
         Endpoint::Endpoint(const std::string &id, const std::string &type, const std::shared_ptr<Pipeline> pipeline_owner)
             : id_(id)
-            , type_(type_map[type])
+            , type_(type)
             , pipeline_owner_(pipeline_owner)
         {
         }
@@ -29,10 +27,17 @@ namespace libwebstreamer
 
         std::shared_ptr<Endpoint> MakeEndpoint(const std::string &type, const std::string &id, const std::shared_ptr<Pipeline> pipeline_owner)
         {
-            switch (type_map[type])
+            switch (get_endpoint_type(type))
             {
-                case EndpointType::RTSP:
-                    return std::make_shared<libwebstreamer::application::endpoint::RtspClient>(id, type, pipeline_owner);
+                case EndpointType::RTSP_CLIENT:
+                {
+                    typedef libwebstreamer::application::endpoint::RtspClient rtspclient;
+                    typedef libwebstreamer::application::pipeline::LiveStream livestream;
+                    std::shared_ptr<rtspclient> ep = std::make_shared<rtspclient>(id, type, pipeline_owner);
+                    const std::string rtsp_url = static_cast<livestream *>(pipeline_owner.get())->rtsp_url();
+                    ep->initialize(rtsp_url);
+                    return ep;
+                }
                 // case StringValue::WEBRTC:
                 //     return std::make_shared<webstreamer::pipeline::endpoint::RtspServer>(
                 //         *static_cast<webstreamer::transport::mediaservice::RtspServer *>(&endpoint));

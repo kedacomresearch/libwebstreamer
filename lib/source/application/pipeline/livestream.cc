@@ -9,24 +9,25 @@ namespace libwebstreamer
     {
         namespace pipeline
         {
+            using namespace libwebstreamer;
             using namespace libwebstreamer::framework;
 
             LiveStream::LiveStream(const std::string &id)
                 : Pipeline(id)
             {
-                video_tee = gst_element_factory_make("tee", "video-tee");
-                audio_tee = gst_element_factory_make("tee", "audio-tee");
-                g_warn_if_fail(gst_bin_add(GST_BIN(pipeline()), video_tee));
-                g_warn_if_fail(gst_bin_add(GST_BIN(pipeline()), audio_tee));
+                video_tee_ = gst_element_factory_make("tee", "video-tee");
+                audio_tee_ = gst_element_factory_make("tee", "audio-tee");
+                g_warn_if_fail(gst_bin_add(GST_BIN(pipeline()), video_tee_));
+                g_warn_if_fail(gst_bin_add(GST_BIN(pipeline()), audio_tee_));
             }
 
             //debug
             LiveStream::~LiveStream()
             {
                 gst_element_set_state(pipeline_, GST_STATE_NULL);
-                for (auto it : endpoints)
+                for (auto it : endpoints_)
                 {
-                    on_remove_endpoint(*it);
+                    on_remove_endpoint(it);
                 }
             }
 
@@ -37,34 +38,34 @@ namespace libwebstreamer
                 gchar *media_type = (gchar *)g_object_get_data(G_OBJECT(upstream_joint), "media-type");
                 if (g_str_equal(media_type, "video"))
                 {
-                    g_warn_if_fail(gst_element_link(video_tee, upstream_joint));
+                    g_warn_if_fail(gst_element_link(video_tee_, upstream_joint));
                 }
                 else if (g_str_equal(media_type, "audio"))
                 {
-                    g_warn_if_fail(gst_element_link(audio_tee, upstream_joint));
+                    g_warn_if_fail(gst_element_link(audio_tee_, upstream_joint));
                 }
                 GstStateChangeReturn ret = gst_element_set_state(Pipeline::pipeline(), GST_STATE_PLAYING);
             }
 
             bool LiveStream::on_add_endpoint(const std::shared_ptr<Endpoint> endpoint)
             {
-                switch (endpoint->type())
+                switch (get_endpoint_type(endpoint->type()))
                 {
-                    case EndpointType::RTSP:
+                    case EndpointType::RTSP_CLIENT:
                     {
                         // static_cast<libwebstreamer::application::endpoint::RtspClient *>(&endpoint)->add_to_pipeline();
                         endpoint->add_to_pipeline();
                         GstElement *parse = gst_bin_get_by_name_recurse_up(GST_BIN(pipeline()), "parse");
                         g_warn_if_fail(parse);
-                        g_warn_if_fail(gst_element_link(parse, video_tee));
+                        g_warn_if_fail(gst_element_link(parse, video_tee_));
 #ifdef ENABLE_AUDIO_CODEC
                         GstElement *alawdec = gst_bin_get_by_name_recurse_up(GST_BIN(pipeline()), "alawdec");
                         g_warn_if_fail(alawdec);
-                        g_warn_if_fail(gst_element_link(alawdec, audio_tee));
+                        g_warn_if_fail(gst_element_link(alawdec, audio_tee_));
 #else
                         GstElement *rtppcmadepay = gst_bin_get_by_name_recurse_up(GST_BIN(pipeline()), "audio-depay");
                         g_warn_if_fail(rtppcmadepay);
-                        g_warn_if_fail(gst_element_link(rtppcmadepay, audio_tee));
+                        g_warn_if_fail(gst_element_link(rtppcmadepay, audio_tee_));
 #endif
                     }
                     break;
@@ -84,20 +85,20 @@ namespace libwebstreamer
 
             bool LiveStream::on_remove_endpoint(const std::shared_ptr<Endpoint> endpoint)
             {
-                // switch (endpoint.type())
-                // {
-                //     case webstreamer::transport::mediaservice::EndpointType::MEDIA_ENDPOINT_RTSPCLIENT:
-                //         static_cast<webstreamer::pipeline::endpoint::RtspClient *>(&endpoint)->remove_from_pipeline(*this);
-                //         break;
-                //     case webstreamer::transport::mediaservice::EndpointType::MEDIA_ENDPOINT_RTSPSERVER:
-                //         static_cast<webstreamer::pipeline::endpoint::RtspServer *>(&endpoint)->remove_from_pipeline(*this);
-                //         break;
-                //     case webstreamer::transport::mediaservice::EndpointType::MEDIA_ENDPOINT_WEBRTC:
-                //         static_cast<webstreamer::pipeline::endpoint::WebRTC *>(&endpoint)->remove_from_pipeline(*this);
-                //         break;
-                //     default:
-                //         return false;
-                // }
+                switch (get_endpoint_type(endpoint->type()))
+                {
+                    case EndpointType::RTSP_CLIENT:
+                        endpoint->remove_from_pipeline();
+                        break;
+                    // case webstreamer::transport::mediaservice::EndpointType::MEDIA_ENDPOINT_RTSPSERVER:
+                    //     static_cast<webstreamer::pipeline::endpoint::RtspServer *>(&endpoint)->remove_from_pipeline(*this);
+                    //     break;
+                    case EndpointType::WEBRTC:
+                        // static_cast<webstreamer::pipeline::endpoint::WebRTC *>(&endpoint)->remove_from_pipeline(*this);
+                        break;
+                    default:
+                        return false;
+                }
                 return true;
             }
             bool LiveStream::MessageHandler(GstMessage *msg)

@@ -25,16 +25,16 @@ namespace libwebstreamer
             void call(const void *data, size_t size , const callback_fn &cb);
 
         private://LiveStream
-            void on_livestream_create(const webstreamer::livestreamer::Create &message, const callback_fn &cb);
-            void on_livestream_destroy(const webstreamer::livestreamer::Destroy &message, const callback_fn &cb);
-            void on_livestream_add_endpoint(const webstreamer::livestreamer::AddViewer &message, const callback_fn &cb);
-            void on_livestream_remove_endpoint(const webstreamer::livestreamer::RemoveViewer &message, const callback_fn &cb);
+            void create_livestream(const webstreamer::livestreamer::Create &message, const callback_fn &cb);
+            void destroy_livestream(const webstreamer::livestreamer::Destroy &message, const callback_fn &cb);
+            void add_endpoint_in_livestream(const webstreamer::livestreamer::AddViewer &message, const callback_fn &cb);
+            void remove_endpoint_in_livestream(const webstreamer::livestreamer::RemoveViewer &message, const callback_fn &cb);
 
         private:
             bool is_livestream_created(const std::string &id);
 
         private:
-            std::vector<std::shared_ptr<Pipeline>> pipelines;
+            std::vector<std::shared_ptr<Pipeline>> pipelines_;
         };
     }
 }

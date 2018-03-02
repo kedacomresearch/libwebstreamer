@@ -9,17 +9,13 @@
 #include <gst/gst.h>
 #include <fbs/webstreamer_generated.h>
 #include <utils/status_code.hpp>
+#include <utils/type_def.hpp>
 
 namespace libwebstreamer
 {
     namespace framework
     {
         class Pipeline;
-        enum EndpointType
-        {
-            RTSP,
-            WEBRTC
-        };
         class Endpoint
         {
         public:
@@ -33,7 +29,7 @@ namespace libwebstreamer
             {
                 return id_;
             }
-            const EndpointType type() const
+            const std::string &type() const
             {
                 return type_;
             }
@@ -49,7 +45,7 @@ namespace libwebstreamer
 
         private:
             std::string id_;
-            EndpointType type_;
+            std::string type_;
             std::weak_ptr<Pipeline> pipeline_owner_;//owner pipeline
         };
 

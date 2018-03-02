@@ -19,18 +19,17 @@ namespace libwebstreamer
                 ~RtspClient()
                 {
                 }
-                virtual void on_add_to_pipeline();
-                virtual void on_remove_from_pipeline();
+                void initialize(const std::string &url);
+                virtual void add_to_pipeline();
+                virtual void remove_from_pipeline();
 
             private:
-                void initialize(const std::string &url);
                 static void on_rtspsrc_pad_added(GstElement *src, GstPad *src_pad, gpointer depay);
 
-            private:
-                GstElement *rtspsrc;
-                GstElement *rtpdepay_video;
-                GstElement *parse_video;
-                GstElement *rtpaudiodepay;
+                GstElement *rtspsrc_;
+                GstElement *rtpdepay_video_;
+                GstElement *parse_video_;
+                GstElement *rtpaudiodepay_;
 #ifdef ENABLE_AUDIO_CODEC
                 GstElement *alawdec;
 #endif

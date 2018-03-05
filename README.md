@@ -39,10 +39,13 @@ git clone https://github.com/kedacomresearch/libwebstreamer.git --recursive
 ## update flatbuffers defination (optional)
 if you update sheme of the flatbuffers in doc/*.fbs, do as follows
 
-flatc -o ./lib/include/fbs --cpp ./doc/*.fbs --include-prefix fbs
+```
+flatc -o lib/include/fbs --cpp doc/common.fbs --include-prefix fbs 
+flatc -o test/schema -s doc/common.fbs --include-prefix fbs
+```
+
 
 ## build
-
 
 entry tmp build directory 
 ```bash
@@ -57,3 +60,6 @@ cmake --build . --target ALL_BUILD --config Debug -- /p:Platform=x64
 cmake --build . --target INSTALL   --config Debug -- /p:Platform=x64  
 
 ```
+
+## Code Standards
+This project follows [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).

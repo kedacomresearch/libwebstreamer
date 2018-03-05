@@ -11,52 +11,58 @@ namespace libwebstreamer
 
         void PipelineManager::call(const void *data, size_t size, const callback_fn &cb)
         {
+            // printf("-----PipelineManager::call-----\n");
             ::flatbuffers::Verifier verifier((const uint8_t *)data, size);
             if (webstreamer::VerifyrootBuffer(verifier))
             {
+                // printf("-----webstreamer::Getroot-----\n");
                 auto livestream_any = webstreamer::Getroot((const uint8_t *)data);
                 switch (livestream_any->any_type())
                 {
                     case webstreamer::Any_webstreamer_livestreamer_Create:
                     {
+                        // printf("-----create livestream-----\n");
                         auto create = livestream_any->any_as_webstreamer_livestreamer_Create();
                         create_livestream(*create, cb);
+                        return;
                     }
                     break;
                     case webstreamer::Any_webstreamer_livestreamer_Destroy:
                     {
+                        // printf("-----destroy livestream-----\n");
                         auto destroy = livestream_any->any_as_webstreamer_livestreamer_Destroy();
                         // message::livestream::destroy_t internal_destroy;
                         // flatbuffers::transform(*destroy, internal_destroy);
                         // on_livestream_destroy(internal_destroy);
+                        return;
                     }
                     break;
                     case webstreamer::Any_webstreamer_livestreamer_AddViewer:
                     {
+                        // printf("-----add viewer-----\n");
                         auto add_endpoint = livestream_any->any_as_webstreamer_livestreamer_AddViewer();
                         // message::livestream::add_endpoint_t internal_add_endpoint;
                         // flatbuffers::transform(*add_endpoint, internal_add_endpoint);
                         // on_livestream_add_endpoint(internal_add_endpoint);
+                        return;
                     }
                     break;
                     case webstreamer::Any_webstreamer_livestreamer_RemoveViewer:
                     {
+                        // printf("-----remove viewer-----\n");
                         auto remove_endpoint = livestream_any->any_as_webstreamer_livestreamer_RemoveViewer();
                         // message::livestream::remove_endpoint_t internal_remove_endpoint;
                         // flatbuffers::transform(*remove_endpoint, internal_remove_endpoint);
                         // on_livestream_remove_endpoint(internal_remove_endpoint);
-                    }
-                    break;
-                    default:
-                    {
-                        printf("-----Invalid message-----\n");
-                        std::string reason("Invalid message");
-                        cb(static_cast<int>(status_code::Bad_Request),
-                           static_cast<void *>(const_cast<char *>(reason.c_str())), reason.size());
+                        return;
                     }
                     break;
                 }
             }
+            // printf("-----Invalid data -----\n");
+            std::string reason("Invalid data from 'call'");
+            cb(static_cast<int>(status_code::Bad_Request),
+               static_cast<void *>(const_cast<char *>(reason.c_str())), reason.size());
         }
 
         void PipelineManager::create_livestream(const webstreamer::livestreamer::Create &message, const callback_fn &cb)
@@ -77,12 +83,13 @@ namespace libwebstreamer
             const webstreamer::Endpoint *endpoint = message.source();
             for (auto it : *(endpoint->channel()))
             {
-                std::string codec(((webstreamer::Channel *)it)->name()->c_str());
-                if (codec == "video")
+                std::string name(((webstreamer::Channel *)it)->name()->c_str());
+                std::string codec(((webstreamer::Channel *)it)->codec()->c_str());
+                if (name == "video")
                 {
                     livestream->video_encoding() = codec;
                 }
-                else if (codec == "audio")
+                else if (name == "audio")
                 {
                     livestream->audio_encoding() = codec;
                 }
@@ -95,7 +102,7 @@ namespace libwebstreamer
                 }
             }
             // set rtsp source url
-            livestream->rtsp_url() = *(endpoint->url()->c_str());
+            livestream->rtsp_url() = std::string(endpoint->url()->c_str());
 
             // create source endpoint
             std::string endpoint_id(endpoint->name()->c_str());
@@ -114,7 +121,7 @@ namespace libwebstreamer
             // add pipeline to pipeline manager
             pipelines_.push_back(livestream);
             cb(0, NULL, 0);
-            g_message("---------create_live_stream %s---------\n", stream_id.c_str());
+            g_message("---------create_live_stream: %s---------\n", stream_id.c_str());
         }
         void PipelineManager::destroy_livestream(const webstreamer::livestreamer::Destroy &message, const callback_fn &cb)
         {
@@ -134,7 +141,7 @@ namespace libwebstreamer
             this->pipelines_.erase(it);
 
             cb(0, NULL, 0);
-            g_message("---------delete_live_stream %s---------\n", stream_id.c_str());
+            g_message("---------delete_live_stream: %s---------\n", stream_id.c_str());
         }
         void PipelineManager::add_endpoint_in_livestream(const webstreamer::livestreamer::AddViewer &message, const callback_fn &cb)
         {

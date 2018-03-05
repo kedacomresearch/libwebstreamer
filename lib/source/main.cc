@@ -12,7 +12,8 @@
 static const char *default_res[] = {"Callback successfully!",
                                     "Callback failed!"};
 
-static void init(const void *self, const void *data, size_t size, void (*cb)(const void *self, int status, char *msg))
+static void init(const void *self, const void *data, size_t size,
+                 void (*cb)(const void *self, int status, char *msg))
 {
     //TODO:
     //data is JSON string (utf8)
@@ -50,12 +51,14 @@ static void call(const void *self, const void *context,
                                  {
                                      if (status == 0)
                                      {
-                                         iface->call_return(self, context, default_res[0], strlen(default_res[0]) + 1, status, NULL, NULL);
+                                         iface->call_return(self, context, default_res[0],
+                                                            strlen(default_res[0]) + 1, status, NULL, NULL);
                                          return;
                                      }
                                      else
                                      {
-                                         iface->call_return(self, context, default_res[1], strlen(default_res[1]) + 1, status, NULL, NULL);
+                                         iface->call_return(self, context, default_res[1],
+                                                            strlen(default_res[1]) + 1, status, NULL, NULL);
                                          return;
                                      }
                                  }
@@ -80,7 +83,7 @@ static void call(const void *self, const void *context,
 static void terminate(const void *self, void (*cb)(const void *self, int status, char *msg))
 {
     libwebstreamer::terminate();
-    printf("gstreamer quite.\n");
+    printf("gstreamer quit.\n");
     if (cb)
     {
         cb(self, 0, ">>>>>Terminate done!<<<<<");

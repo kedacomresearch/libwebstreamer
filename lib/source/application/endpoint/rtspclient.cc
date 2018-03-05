@@ -69,11 +69,14 @@ namespace libwebstreamer
                         break;
                     default:
                         g_warn_if_reached();
+                        g_message("No Video Codec!");
                         //todo...
                         break;
                 }
                 g_warn_if_fail(rtpdepay_video_ && parse_video_);
 
+                g_warn_if_fail(pipeline_owner().lock() != NULL);
+                g_warn_if_fail(pipeline_owner().lock()->pipeline() != NULL);
                 gst_bin_add_many(GST_BIN(pipeline_owner().lock()->pipeline()), rtspsrc_, rtpdepay_video_, parse_video_, NULL);
                 g_signal_connect(rtspsrc_, "pad-added", (GCallback)on_rtspsrc_pad_added, this);
                 g_warn_if_fail(gst_element_link(rtpdepay_video_, parse_video_));
@@ -91,7 +94,8 @@ namespace libwebstreamer
                         rtpaudiodepay_ = gst_element_factory_make("rtpopusdepay", "audio-depay");
                         break;
                     default:
-                        g_message("No Audio!");
+                        g_warn_if_reached();
+                        g_message("No Audio Codec!");
                         //todo...
                         break;
                 }

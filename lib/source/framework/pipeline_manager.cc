@@ -6,7 +6,7 @@ namespace libwebstreamer
 {
     namespace framework
     {
-        using namespace libwebstreamer::util;
+        using namespace libwebstreamer::utils;
         using namespace libwebstreamer::application::pipeline;
 
         void PipelineManager::call(const void *data, size_t size, const callback_fn &cb)
@@ -31,9 +31,7 @@ namespace libwebstreamer
                     {
                         // printf("-----destroy livestream-----\n");
                         auto destroy = livestream_any->any_as_webstreamer_livestreamer_Destroy();
-                        // message::livestream::destroy_t internal_destroy;
-                        // flatbuffers::transform(*destroy, internal_destroy);
-                        // on_livestream_destroy(internal_destroy);
+                        destroy_livestream(*destroy, cb);
                         return;
                     }
                     break;
@@ -41,9 +39,7 @@ namespace libwebstreamer
                     {
                         // printf("-----add viewer-----\n");
                         auto add_endpoint = livestream_any->any_as_webstreamer_livestreamer_AddViewer();
-                        // message::livestream::add_endpoint_t internal_add_endpoint;
-                        // flatbuffers::transform(*add_endpoint, internal_add_endpoint);
-                        // on_livestream_add_endpoint(internal_add_endpoint);
+                        add_endpoint_in_livestream(*add_endpoint, cb);
                         return;
                     }
                     break;
@@ -51,9 +47,7 @@ namespace libwebstreamer
                     {
                         // printf("-----remove viewer-----\n");
                         auto remove_endpoint = livestream_any->any_as_webstreamer_livestreamer_RemoveViewer();
-                        // message::livestream::remove_endpoint_t internal_remove_endpoint;
-                        // flatbuffers::transform(*remove_endpoint, internal_remove_endpoint);
-                        // on_livestream_remove_endpoint(internal_remove_endpoint);
+                        remove_endpoint_in_livestream(*remove_endpoint, cb);
                         return;
                     }
                     break;
@@ -87,10 +81,12 @@ namespace libwebstreamer
                 std::string codec(((webstreamer::Channel *)it)->codec()->c_str());
                 if (name == "video")
                 {
+                    // printf("----set video----\n");
                     livestream->video_encoding() = codec;
                 }
                 else if (name == "audio")
                 {
+                    // printf("----set audio----\n");
                     livestream->audio_encoding() = codec;
                 }
                 else
@@ -102,12 +98,12 @@ namespace libwebstreamer
                 }
             }
             // set rtsp source url
-            livestream->rtsp_url() = std::string(endpoint->url()->c_str());
+            std::string endpoint_url(endpoint->url()->c_str());
 
             // create source endpoint
             std::string endpoint_id(endpoint->name()->c_str());
             std::string endpoint_type(endpoint->protocol()->c_str());
-            std::shared_ptr<Endpoint> ep = MakeEndpoint(endpoint_type, endpoint_id, livestream);
+            std::shared_ptr<Endpoint> ep = MakeEndpoint(endpoint_type, endpoint_id, endpoint_url, livestream);
 
             // add endpoint to pipeline
             if (!livestream->add_endpoint(ep))
@@ -137,17 +133,79 @@ namespace libwebstreamer
                    static_cast<void *>(const_cast<char *>(reason.c_str())), reason.size());
                 return;
             }
-
-            this->pipelines_.erase(it);
+            //remove all endpoints in the pipeline, and then remove the pipeline
+            g_assert(it->unique());
+            (*it)->remove_all_endpoints();
+            pipelines_.erase(it);
 
             cb(0, NULL, 0);
+
             g_message("---------delete_live_stream: %s---------\n", stream_id.c_str());
         }
         void PipelineManager::add_endpoint_in_livestream(const webstreamer::livestreamer::AddViewer &message, const callback_fn &cb)
         {
+            // get stream id and find pipeline
+            std::string stream_id(message.component()->c_str());
+            auto it = std::find_if(pipelines_.begin(), pipelines_.end(), [&stream_id](std::shared_ptr<Pipeline> &pipeline) {
+                return pipeline->id() == stream_id;
+            });
+
+            if (it == pipelines_.end())
+            {
+                // pipeline exists
+                std::string reason("The stream: " + stream_id + " is not existed!");
+                cb(static_cast<int>(status_code::Not_Found),
+                   static_cast<void *>(const_cast<char *>(reason.c_str())), reason.size());
+                return;
+            }
+            // set viewer url (for rtsp server use)
+            const webstreamer::Endpoint *endpoint = message.viewer();
+            std::string endpoint_url(endpoint->url()->c_str());
+
+            // create viewer endpoint
+            std::string endpoint_id(endpoint->name()->c_str());
+            std::string endpoint_type(endpoint->protocol()->c_str());
+            std::shared_ptr<Endpoint> ep = MakeEndpoint(endpoint_type, endpoint_id, endpoint_url, *it);
+
+            // add to pipeline
+            if (!(*it)->add_endpoint(ep))
+            {
+                std::string reason("Add endpoint failed!");
+                cb(static_cast<int>(status_code::Bad_Request),
+                   static_cast<void *>(const_cast<char *>(reason.c_str())), reason.size());
+                return;
+            }
+            cb(0, NULL, 0);
         }
         void PipelineManager::remove_endpoint_in_livestream(const webstreamer::livestreamer::RemoveViewer &message, const callback_fn &cb)
         {
+            // get stream id and find pipeline
+            std::string stream_id(message.component()->c_str());
+            auto it = std::find_if(pipelines_.begin(), pipelines_.end(), [&stream_id](std::shared_ptr<Pipeline> &pipeline) {
+                return pipeline->id() == stream_id;
+            });
+
+            if (it == pipelines_.end())
+            {
+                // pipeline not exists
+                std::string reason("The stream: " + stream_id + " is not existed!");
+                cb(static_cast<int>(status_code::Not_Found),
+                   static_cast<void *>(const_cast<char *>(reason.c_str())), reason.size());
+                return;
+            }
+            // get endpoint id
+            std::string endpoint_id(message.endpoint()->c_str());
+            // remove endpoint
+            if ((*it)->remove_endpoint(endpoint_id))
+                cb(0, NULL, 0);
+            else
+            {
+                // endpoint not exists
+                std::string reason("The endpoint: " + endpoint_id + " is not existed!");
+                cb(static_cast<int>(status_code::Not_Found),
+                   static_cast<void *>(const_cast<char *>(reason.c_str())), reason.size());
+                return;
+            }
         }
 
         bool PipelineManager::is_livestream_created(const std::string &id)

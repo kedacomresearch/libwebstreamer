@@ -10,7 +10,9 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 #add_library( libwebstreamer SHARED lib/source/example.cpp)
 file( GLOB_RECURSE _SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cpp
-                            ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cc )
+                            ${CMAKE_CURRENT_SOURCE_DIR}/source/*.cc
+                            ${CMAKE_CURRENT_SOURCE_DIR}/source/*.h
+                            ${CMAKE_CURRENT_SOURCE_DIR}/source/*.c)
 							
 file( GLOB_RECURSE _HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/include/*.inl 
                             ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h 
@@ -21,7 +23,7 @@ autocmake_msvc_project_group( _FILES ${CMAKE_CURRENT_SOURCE_DIR})
 
 autocmake_add_library(libwebstreamer  SHARED
              SOURCES ${_FILES}
-             MODULES gstreamer-1.0 glib-2.0 json-glib-1.0 openwebrtc-lite-0.3
+             MODULES gstreamer-rtsp-server-1.0 gstreamer-1.0 glib-2.0 json-glib-1.0 openwebrtc-lite-0.3
 			 )
 
 target_link_libraries(libwebstreamer flatbuffers)

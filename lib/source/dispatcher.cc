@@ -4,6 +4,7 @@
 #include <glib.h>
 #include <dispatcher.hpp>
 #include <framework/pipeline_manager.hpp>
+#include <application/endpoint/rtspserver.hpp>
 
 namespace libwebstreamer
 {
@@ -14,15 +15,24 @@ namespace libwebstreamer
     static std::unique_ptr<framework::PipelineManager> pipeline_manager(new framework::PipelineManager());
     static gboolean on_pipeline_manager_dispatch(gpointer pipeline_manager);
 
+    static guint rtsp_server_source_id = 0;
+
     void initialize()
     {
         libwebstreamer_main_context = g_main_context_ref_thread_default();
         owr_init(libwebstreamer_main_context);
         owr_run_in_background();
+
+        GstRTSPServer *rtsp_server = libwebstreamer::application::endpoint::get_rtsp_server();
+        rtsp_server_source_id = gst_rtsp_server_attach(rtsp_server, libwebstreamer_main_context);
     }
 
     void terminate()
     {
+        GstRTSPServer *rtsp_server = libwebstreamer::application::endpoint::get_rtsp_server();
+        g_warn_if_fail(g_source_remove(rtsp_server_source_id));
+        g_object_unref(rtsp_server);
+
         owr_quit();
     }
 

@@ -11,11 +11,13 @@ namespace libwebstreamer
         {
         public:
             Pipeline(const std::string &id);
-            virtual ~Pipeline();
+            ~Pipeline();
 
             bool add_endpoint(const std::shared_ptr<Endpoint> endpoint);
             bool remove_endpoint(const std::string &endpoint_id);
+            bool remove_all_endpoints();
             virtual void add_pipe_joint(GstElement *upstream_joint) = 0;
+            virtual void remove_pipe_joint(GstElement *upstream_joint) = 0;
 
             const std::string &id() const
             {

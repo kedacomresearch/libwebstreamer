@@ -5,7 +5,7 @@
 
 namespace libwebstreamer
 {
-    namespace util
+    namespace utils
     {
         //see http://www.restapitutorial.com/httpstatuscodes.html
         //or  https://www.ietf.org/assignments/http-status-codes/http-status-codes.xml

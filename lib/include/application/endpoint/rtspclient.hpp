@@ -20,8 +20,8 @@ namespace libwebstreamer
                 {
                 }
                 void initialize(const std::string &url);
-                virtual void add_to_pipeline();
-                virtual void remove_from_pipeline();
+                virtual bool add_to_pipeline();
+                virtual bool remove_from_pipeline();
 
             private:
                 static void on_rtspsrc_pad_added(GstElement *src, GstPad *src_pad, gpointer depay);

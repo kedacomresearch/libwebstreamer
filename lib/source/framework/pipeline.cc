@@ -34,13 +34,14 @@ namespace libwebstreamer
             }
 
             gst_element_set_state(pipeline_, GST_STATE_NULL);
+            g_assert(endpoints_.empty());
 
             // for (int i = 0; i < endpoints_.size(); i++)
+            // {
             //     g_assert(endpoints_[i].unique());
-            //并发量高时，可能先收到delete pipeline的请求，再收到delete endpoint的请求
-            //相对于remove_endpoint函数，这里少了on_remove_endpoint( * (*it) );这一步
-            //但由于on_remove_endpoint( * (*it) );是虚函数，不能在析构函数中调用，所以需要分别在对应pipeline派生类中调用（例如在livestream的析构函数中调用）
-            endpoints_.erase(endpoints_.begin(), endpoints_.end());
+            //     // on_remove_endpoint(endpoints_[i]);
+            // }
+            // endpoints_.erase(endpoints_.begin(), endpoints_.end());
 
             gst_object_unref(pipeline_);
         }
@@ -54,8 +55,12 @@ namespace libwebstreamer
             {
                 return false;
             }
+            if (!on_add_endpoint(endpoint))
+            {
+                return false;
+            }
             endpoints_.push_back(endpoint);
-            return on_add_endpoint(endpoint);
+            return true;
         }
 
         bool Pipeline::remove_endpoint(const std::string &endpoint_id)
@@ -67,9 +72,21 @@ namespace libwebstreamer
             {
                 return false;
             }
-            // g_assert(it->unique());
+            g_assert(it->unique());
             on_remove_endpoint(*it);
             endpoints_.erase(it);
+            printf("-------endpoints left: %d----\n", endpoints_.size());
+            return true;
+        }
+        bool Pipeline::remove_all_endpoints()
+        {
+            for (int i = 0; i < endpoints_.size(); i++)
+            {
+                g_assert(endpoints_[i].unique());
+                on_remove_endpoint(endpoints_[i]);
+            }
+            endpoints_.erase(endpoints_.begin(), endpoints_.end());
+            printf("-------endpoints left: %d----\n", endpoints_.size());
             return true;
         }
 

@@ -15,17 +15,21 @@ struct root;
 
 enum Any {
   Any_NONE = 0,
-  Any_webstreamer_livestreamer_Create = 1,
-  Any_webstreamer_livestreamer_Destroy = 2,
-  Any_webstreamer_livestreamer_AddViewer = 3,
-  Any_webstreamer_livestreamer_RemoveViewer = 4,
+  Any_webstreamer_Topic = 1,
+  Any_webstreamer_Subscription = 2,
+  Any_webstreamer_livestreamer_Create = 3,
+  Any_webstreamer_livestreamer_Destroy = 4,
+  Any_webstreamer_livestreamer_AddViewer = 5,
+  Any_webstreamer_livestreamer_RemoveViewer = 6,
   Any_MIN = Any_NONE,
   Any_MAX = Any_webstreamer_livestreamer_RemoveViewer
 };
 
-inline Any (&EnumValuesAny())[5] {
+inline Any (&EnumValuesAny())[7] {
   static Any values[] = {
     Any_NONE,
+    Any_webstreamer_Topic,
+    Any_webstreamer_Subscription,
     Any_webstreamer_livestreamer_Create,
     Any_webstreamer_livestreamer_Destroy,
     Any_webstreamer_livestreamer_AddViewer,
@@ -37,6 +41,8 @@ inline Any (&EnumValuesAny())[5] {
 inline const char **EnumNamesAny() {
   static const char *names[] = {
     "NONE",
+    "webstreamer_Topic",
+    "webstreamer_Subscription",
     "webstreamer_livestreamer_Create",
     "webstreamer_livestreamer_Destroy",
     "webstreamer_livestreamer_AddViewer",
@@ -53,6 +59,14 @@ inline const char *EnumNameAny(Any e) {
 
 template<typename T> struct AnyTraits {
   static const Any enum_value = Any_NONE;
+};
+
+template<> struct AnyTraits<Topic> {
+  static const Any enum_value = Any_webstreamer_Topic;
+};
+
+template<> struct AnyTraits<Subscription> {
+  static const Any enum_value = Any_webstreamer_Subscription;
 };
 
 template<> struct AnyTraits<webstreamer::livestreamer::Create> {
@@ -86,6 +100,12 @@ struct root FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     return GetPointer<const void *>(VT_ANY);
   }
   template<typename T> const T *any_as() const;
+  const Topic *any_as_webstreamer_Topic() const {
+    return any_type() == Any_webstreamer_Topic ? static_cast<const Topic *>(any()) : nullptr;
+  }
+  const Subscription *any_as_webstreamer_Subscription() const {
+    return any_type() == Any_webstreamer_Subscription ? static_cast<const Subscription *>(any()) : nullptr;
+  }
   const webstreamer::livestreamer::Create *any_as_webstreamer_livestreamer_Create() const {
     return any_type() == Any_webstreamer_livestreamer_Create ? static_cast<const webstreamer::livestreamer::Create *>(any()) : nullptr;
   }
@@ -106,6 +126,14 @@ struct root FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            verifier.EndTable();
   }
 };
+
+template<> inline const Topic *root::any_as<Topic>() const {
+  return any_as_webstreamer_Topic();
+}
+
+template<> inline const Subscription *root::any_as<Subscription>() const {
+  return any_as_webstreamer_Subscription();
+}
 
 template<> inline const webstreamer::livestreamer::Create *root::any_as<webstreamer::livestreamer::Create>() const {
   return any_as_webstreamer_livestreamer_Create();
@@ -158,6 +186,14 @@ inline bool VerifyAny(flatbuffers::Verifier &verifier, const void *obj, Any type
   switch (type) {
     case Any_NONE: {
       return true;
+    }
+    case Any_webstreamer_Topic: {
+      auto ptr = reinterpret_cast<const Topic *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    case Any_webstreamer_Subscription: {
+      auto ptr = reinterpret_cast<const Subscription *>(obj);
+      return verifier.VerifyTable(ptr);
     }
     case Any_webstreamer_livestreamer_Create: {
       auto ptr = reinterpret_cast<const webstreamer::livestreamer::Create *>(obj);

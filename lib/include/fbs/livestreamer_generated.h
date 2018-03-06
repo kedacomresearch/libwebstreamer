@@ -11,8 +11,6 @@
 namespace webstreamer {
 namespace livestreamer {
 
-struct Component;
-
 struct Create;
 
 struct Destroy;
@@ -23,97 +21,21 @@ struct RemoveViewer;
 
 struct LiveStreamError;
 
-struct Component FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
-  enum {
-    VT_ID = 4,
-    VT_SOURCE = 6,
-    VT_VIEWER = 8
-  };
-  const flatbuffers::String *id() const {
-    return GetPointer<const flatbuffers::String *>(VT_ID);
-  }
-  const webstreamer::Endpoint *source() const {
-    return GetPointer<const webstreamer::Endpoint *>(VT_SOURCE);
-  }
-  const flatbuffers::Vector<flatbuffers::Offset<webstreamer::Endpoint>> *viewer() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<webstreamer::Endpoint>> *>(VT_VIEWER);
-  }
-  bool Verify(flatbuffers::Verifier &verifier) const {
-    return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_ID) &&
-           verifier.Verify(id()) &&
-           VerifyOffset(verifier, VT_SOURCE) &&
-           verifier.VerifyTable(source()) &&
-           VerifyOffset(verifier, VT_VIEWER) &&
-           verifier.Verify(viewer()) &&
-           verifier.VerifyVectorOfTables(viewer()) &&
-           verifier.EndTable();
-  }
-};
-
-struct ComponentBuilder {
-  flatbuffers::FlatBufferBuilder &fbb_;
-  flatbuffers::uoffset_t start_;
-  void add_id(flatbuffers::Offset<flatbuffers::String> id) {
-    fbb_.AddOffset(Component::VT_ID, id);
-  }
-  void add_source(flatbuffers::Offset<webstreamer::Endpoint> source) {
-    fbb_.AddOffset(Component::VT_SOURCE, source);
-  }
-  void add_viewer(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<webstreamer::Endpoint>>> viewer) {
-    fbb_.AddOffset(Component::VT_VIEWER, viewer);
-  }
-  explicit ComponentBuilder(flatbuffers::FlatBufferBuilder &_fbb)
-        : fbb_(_fbb) {
-    start_ = fbb_.StartTable();
-  }
-  ComponentBuilder &operator=(const ComponentBuilder &);
-  flatbuffers::Offset<Component> Finish() {
-    const auto end = fbb_.EndTable(start_);
-    auto o = flatbuffers::Offset<Component>(end);
-    return o;
-  }
-};
-
-inline flatbuffers::Offset<Component> CreateComponent(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> id = 0,
-    flatbuffers::Offset<webstreamer::Endpoint> source = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<webstreamer::Endpoint>>> viewer = 0) {
-  ComponentBuilder builder_(_fbb);
-  builder_.add_viewer(viewer);
-  builder_.add_source(source);
-  builder_.add_id(id);
-  return builder_.Finish();
-}
-
-inline flatbuffers::Offset<Component> CreateComponentDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *id = nullptr,
-    flatbuffers::Offset<webstreamer::Endpoint> source = 0,
-    const std::vector<flatbuffers::Offset<webstreamer::Endpoint>> *viewer = nullptr) {
-  return webstreamer::livestreamer::CreateComponent(
-      _fbb,
-      id ? _fbb.CreateString(id) : 0,
-      source,
-      viewer ? _fbb.CreateVector<flatbuffers::Offset<webstreamer::Endpoint>>(*viewer) : 0);
-}
-
 struct Create FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
-    VT_ID = 4,
+    VT_NAME = 4,
     VT_SOURCE = 6
   };
-  const flatbuffers::String *id() const {
-    return GetPointer<const flatbuffers::String *>(VT_ID);
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
   const webstreamer::Endpoint *source() const {
     return GetPointer<const webstreamer::Endpoint *>(VT_SOURCE);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_ID) &&
-           verifier.Verify(id()) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.Verify(name()) &&
            VerifyOffset(verifier, VT_SOURCE) &&
            verifier.VerifyTable(source()) &&
            verifier.EndTable();
@@ -123,8 +45,8 @@ struct Create FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct CreateBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_id(flatbuffers::Offset<flatbuffers::String> id) {
-    fbb_.AddOffset(Create::VT_ID, id);
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(Create::VT_NAME, name);
   }
   void add_source(flatbuffers::Offset<webstreamer::Endpoint> source) {
     fbb_.AddOffset(Create::VT_SOURCE, source);
@@ -143,35 +65,35 @@ struct CreateBuilder {
 
 inline flatbuffers::Offset<Create> CreateCreate(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> id = 0,
+    flatbuffers::Offset<flatbuffers::String> name = 0,
     flatbuffers::Offset<webstreamer::Endpoint> source = 0) {
   CreateBuilder builder_(_fbb);
   builder_.add_source(source);
-  builder_.add_id(id);
+  builder_.add_name(name);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Create> CreateCreateDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *id = nullptr,
+    const char *name = nullptr,
     flatbuffers::Offset<webstreamer::Endpoint> source = 0) {
   return webstreamer::livestreamer::CreateCreate(
       _fbb,
-      id ? _fbb.CreateString(id) : 0,
+      name ? _fbb.CreateString(name) : 0,
       source);
 }
 
 struct Destroy FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
-    VT_ID = 4
+    VT_NAME = 4
   };
-  const flatbuffers::String *id() const {
-    return GetPointer<const flatbuffers::String *>(VT_ID);
+  const flatbuffers::String *name() const {
+    return GetPointer<const flatbuffers::String *>(VT_NAME);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_ID) &&
-           verifier.Verify(id()) &&
+           VerifyOffset(verifier, VT_NAME) &&
+           verifier.Verify(name()) &&
            verifier.EndTable();
   }
 };
@@ -179,8 +101,8 @@ struct Destroy FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct DestroyBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_id(flatbuffers::Offset<flatbuffers::String> id) {
-    fbb_.AddOffset(Destroy::VT_ID, id);
+  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
+    fbb_.AddOffset(Destroy::VT_NAME, name);
   }
   explicit DestroyBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -196,38 +118,37 @@ struct DestroyBuilder {
 
 inline flatbuffers::Offset<Destroy> CreateDestroy(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> id = 0) {
+    flatbuffers::Offset<flatbuffers::String> name = 0) {
   DestroyBuilder builder_(_fbb);
-  builder_.add_id(id);
+  builder_.add_name(name);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Destroy> CreateDestroyDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *id = nullptr) {
+    const char *name = nullptr) {
   return webstreamer::livestreamer::CreateDestroy(
       _fbb,
-      id ? _fbb.CreateString(id) : 0);
+      name ? _fbb.CreateString(name) : 0);
 }
 
 struct AddViewer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
-    VT_ID = 4,
+    VT_COMPONENT = 4,
     VT_VIEWER = 6
   };
-  const flatbuffers::String *id() const {
-    return GetPointer<const flatbuffers::String *>(VT_ID);
+  const flatbuffers::String *component() const {
+    return GetPointer<const flatbuffers::String *>(VT_COMPONENT);
   }
-  const flatbuffers::Vector<flatbuffers::Offset<webstreamer::Endpoint>> *viewer() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<webstreamer::Endpoint>> *>(VT_VIEWER);
+  const webstreamer::Endpoint *viewer() const {
+    return GetPointer<const webstreamer::Endpoint *>(VT_VIEWER);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_ID) &&
-           verifier.Verify(id()) &&
+           VerifyOffset(verifier, VT_COMPONENT) &&
+           verifier.Verify(component()) &&
            VerifyOffset(verifier, VT_VIEWER) &&
-           verifier.Verify(viewer()) &&
-           verifier.VerifyVectorOfTables(viewer()) &&
+           verifier.VerifyTable(viewer()) &&
            verifier.EndTable();
   }
 };
@@ -235,10 +156,10 @@ struct AddViewer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct AddViewerBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_id(flatbuffers::Offset<flatbuffers::String> id) {
-    fbb_.AddOffset(AddViewer::VT_ID, id);
+  void add_component(flatbuffers::Offset<flatbuffers::String> component) {
+    fbb_.AddOffset(AddViewer::VT_COMPONENT, component);
   }
-  void add_viewer(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<webstreamer::Endpoint>>> viewer) {
+  void add_viewer(flatbuffers::Offset<webstreamer::Endpoint> viewer) {
     fbb_.AddOffset(AddViewer::VT_VIEWER, viewer);
   }
   explicit AddViewerBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -255,36 +176,41 @@ struct AddViewerBuilder {
 
 inline flatbuffers::Offset<AddViewer> CreateAddViewer(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> id = 0,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<webstreamer::Endpoint>>> viewer = 0) {
+    flatbuffers::Offset<flatbuffers::String> component = 0,
+    flatbuffers::Offset<webstreamer::Endpoint> viewer = 0) {
   AddViewerBuilder builder_(_fbb);
   builder_.add_viewer(viewer);
-  builder_.add_id(id);
+  builder_.add_component(component);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<AddViewer> CreateAddViewerDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const char *id = nullptr,
-    const std::vector<flatbuffers::Offset<webstreamer::Endpoint>> *viewer = nullptr) {
+    const char *component = nullptr,
+    flatbuffers::Offset<webstreamer::Endpoint> viewer = 0) {
   return webstreamer::livestreamer::CreateAddViewer(
       _fbb,
-      id ? _fbb.CreateString(id) : 0,
-      viewer ? _fbb.CreateVector<flatbuffers::Offset<webstreamer::Endpoint>>(*viewer) : 0);
+      component ? _fbb.CreateString(component) : 0,
+      viewer);
 }
 
 struct RemoveViewer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum {
-    VT_ENDPOINT = 4
+    VT_COMPONENT = 4,
+    VT_ENDPOINT = 6
   };
-  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *endpoint() const {
-    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_ENDPOINT);
+  const flatbuffers::String *component() const {
+    return GetPointer<const flatbuffers::String *>(VT_COMPONENT);
+  }
+  const flatbuffers::String *endpoint() const {
+    return GetPointer<const flatbuffers::String *>(VT_ENDPOINT);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
+           VerifyOffset(verifier, VT_COMPONENT) &&
+           verifier.Verify(component()) &&
            VerifyOffset(verifier, VT_ENDPOINT) &&
            verifier.Verify(endpoint()) &&
-           verifier.VerifyVectorOfStrings(endpoint()) &&
            verifier.EndTable();
   }
 };
@@ -292,7 +218,10 @@ struct RemoveViewer FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
 struct RemoveViewerBuilder {
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_endpoint(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> endpoint) {
+  void add_component(flatbuffers::Offset<flatbuffers::String> component) {
+    fbb_.AddOffset(RemoveViewer::VT_COMPONENT, component);
+  }
+  void add_endpoint(flatbuffers::Offset<flatbuffers::String> endpoint) {
     fbb_.AddOffset(RemoveViewer::VT_ENDPOINT, endpoint);
   }
   explicit RemoveViewerBuilder(flatbuffers::FlatBufferBuilder &_fbb)
@@ -309,18 +238,22 @@ struct RemoveViewerBuilder {
 
 inline flatbuffers::Offset<RemoveViewer> CreateRemoveViewer(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> endpoint = 0) {
+    flatbuffers::Offset<flatbuffers::String> component = 0,
+    flatbuffers::Offset<flatbuffers::String> endpoint = 0) {
   RemoveViewerBuilder builder_(_fbb);
   builder_.add_endpoint(endpoint);
+  builder_.add_component(component);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<RemoveViewer> CreateRemoveViewerDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    const std::vector<flatbuffers::Offset<flatbuffers::String>> *endpoint = nullptr) {
+    const char *component = nullptr,
+    const char *endpoint = nullptr) {
   return webstreamer::livestreamer::CreateRemoveViewer(
       _fbb,
-      endpoint ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*endpoint) : 0);
+      component ? _fbb.CreateString(component) : 0,
+      endpoint ? _fbb.CreateString(endpoint) : 0);
 }
 
 struct LiveStreamError FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

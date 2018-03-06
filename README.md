@@ -6,19 +6,19 @@ web oriented multimedia backend library
 
 
 ## prerequisites
-  * flatc
-    make sure you have install pkg-config (>=1.8.0)
+  * flatc  
+    make sure you have install flatc (>=1.8.0)
 
-  * pkg-config
+  * pkg-config  
     make sure you have install pkg-config (>=0.29.1)
   
-  * GStreamer and OpenWebRTC and set enviroment
-    for example in windows
+  * GStreamer and OpenWebRTC and set enviroment  
+    for example in windows  
 
     set PKG_CONFIG_LIBDIR=C:\cerbero\x86_64\lib\pkgconfig
 
 
-    then check if all these installation match your requirment
+    then check if all these installation match your requirment  
     ```bash
     $ pkg-config --version
     0.29.1
@@ -39,10 +39,13 @@ git clone https://github.com/kedacomresearch/libwebstreamer.git --recursive
 ## update flatbuffers defination (optional)
 if you update sheme of the flatbuffers in doc/*.fbs, do as follows
 
-flatc -o ./lib/fbs --cpp ./doc/*.fbs --include-prefix fbs
+```
+flatc -o lib/include/fbs --cpp doc/common.fbs --include-prefix fbs 
+flatc -o test/schema -s doc/common.fbs --include-prefix fbs
+```
+
 
 ## build
-
 
 entry tmp build directory 
 ```bash
@@ -57,3 +60,6 @@ cmake --build . --target ALL_BUILD --config Debug -- /p:Platform=x64
 cmake --build . --target INSTALL   --config Debug -- /p:Platform=x64  
 
 ```
+
+## Code Standards
+This project follows [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).

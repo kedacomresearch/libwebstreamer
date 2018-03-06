@@ -1,0 +1,6 @@
+.vscode
+/build
+/flatbuffers
+*/node_modules
+*/package-lock.json
+*.dll

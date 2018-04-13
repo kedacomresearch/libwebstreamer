@@ -1,16 +1,3 @@
-if not exist build mkdir build
-
-pushd build
-
-cmake -G "Visual Studio 15 2017 Win64" ..
-cmake --build . --target ALL_BUILD --config Debug
-
-popd
-
-
-
-
-
 @echo OFF
 
 rem build arch (x86 | x64) generator (2015|2017)
@@ -49,17 +36,6 @@ if %arch% == x64  set options=%options% Win64
 set options=%options%"
 cmake %options% ..
 if %errorlevel% neq 0 goto _ERROR
-
-REM ------------------------------
-REM    CPPLint
-REM ------------------------------
-set _FILTER=-whitespace/tab,-build/header_guard,-whitespace/braces,-readability/casting,-build/include_order,-build/include
-for /r ..\lib %%h in (*.h) do (
-   python %__ROOT__%\cpplint.py --filter=%_FILTER% %%h
-   if %errorlevel% neq 0 goto _ERROR   
-)
-
-
 
 set options=--config Release
 if defined _DEBUG set options=--config Debug

@@ -1,25 +1,16 @@
-//#include "rtspserver"
-//
-//bool RTSPServer::Intialize(int port, bool onvif)
-//{
-//
-//}
-//
-//bool RTSPService::Initialize(const std::string& path, bool onvif)
-//{
-//	mount_ = gst_rtsp_server_get_mount_points(this->server());
-//	factory_ = gst_rtsp_media_factory_new();
-//	/* if you want multiple clients to see the same video, set the shared property to TRUE */
-//	gst_rtsp_media_factory_set_shared(factory_, TRUE);
-//
-//	gst_rtsp_media_factory_set_launch(factory, launch.c_str());
-//	g_signal_connect(factory, "media-constructed", (GCallback)on_rtsp_media_constructed, (gpointer)(this));
-//}
-//
-//void RTSPService::Launch(const std::string& desc)
-//{
-//	gst_rtsp_media_factory_set_launch(factory, desc.c_str());
-//	gst_rtsp_mount_points_add_factory(mount_points, path_.c_str(), factory);
-//	g_object_unref(mount_points);
-//
-//}
+/*
+ * Copyright 2018 KEDACOM Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+

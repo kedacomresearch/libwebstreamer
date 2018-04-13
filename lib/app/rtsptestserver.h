@@ -1,3 +1,18 @@
+/*
+ * Copyright 2018 KEDACOM Inc. All rights reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #ifndef _LIBWEBSTREAMER_RTSP_TEST_SERVER_H_
 #define _LIBWEBSTREAMER_RTSP_TEST_SERVER_H_
@@ -5,41 +20,37 @@
 #include <gst/rtsp-server/rtsp-server.h>
 #include <gst/rtsp-server/rtsp-session-pool.h>
 
+#include <string>
 #include <framework/app.h>
+
 
 
 
 class RTSPTestServer : public IApp
 {
-public:
-	APP(RTSPTestServer)
+ public:
+    APP(RTSPTestServer);
 
+    RTSPTestServer(const std::string& name, WebStreamer* ws)
+        : IApp(name, ws)
+        , mounts_(NULL)
+        , factory_(NULL)
+        , rtspservice_(NULL)
+    {
+    }
 
-	RTSPTestServer(const std::string& name, WebStreamer* ws )
-		: IApp( name ,ws)
-		//, server_(NULL)
-		,mounts_(NULL)
-		,factory_(NULL)
-		//,session_(NULL)
-		, rtspservice_(NULL)
-	{
-		
-	}
+    void On(Promise* promise);
+    bool Initialize(Promise* promise);
+    bool Destroy(Promise* promise);
+ protected:
+    void Startup(Promise* promise);
+    void Stop(Promise* promise);
 
-	void On(Promise* promise);
-	bool Initialize(Promise* promise);
-	bool Destroy(Promise* promise);
-protected:
-	void Startup(Promise* promise);
-	void Stop(Promise* promise);
-
-private:
-	//GstRTSPServer*       server_;
-	GstRTSPMountPoints*  mounts_;
-	GstRTSPMediaFactory* factory_;
-	//GstRTSPSessionPool * session_;
-	IEndpoint*           rtspservice_;
+ private:
+    GstRTSPMountPoints * mounts_;
+    GstRTSPMediaFactory* factory_;
+    IEndpoint*           rtspservice_;
 };
 
 
-#endif //!_LIBWEBSTREAMER_RTSP_TEST_SERVER_H_
+#endif  // _LIBWEBSTREAMER_RTSP_TEST_SERVER_H_

@@ -17,11 +17,16 @@
 #include <webstreamer.h>
 #include "rtspservice.h"
 #include <gst/rtsp-server/rtsp-onvif-server.h>
+
+GST_DEBUG_CATEGORY_STATIC(my_category);
+#define GST_CAT_DEFAULT my_category
+
 IRTSPService::IRTSPService(IApp* app,
     const std::string& name, RTSPServer::Type type)
     :IEndpoint(app, name),
     factory_(NULL)
 {
+    GST_DEBUG_CATEGORY_INIT(my_category, "webstreamer", 2, "libWebStreamer");
     server_ = app->webstreamer().GetRTSPServer(type);
 }
 

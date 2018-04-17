@@ -41,6 +41,7 @@ bool IApp::Destroy(Promise* promise)
         g_object_unref(pipeline_);
         pipeline_ = NULL;
     }
+    webstreamer_ = NULL;
     return true;
 }
 

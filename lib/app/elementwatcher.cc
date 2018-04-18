@@ -75,7 +75,7 @@ void ElementWatcher::Stop(Promise* promise)
 
 bool ElementWatcher::Destroy(Promise* promise)
 {
-    IApp::Destroy(promise);
+    // IApp::Destroy(promise);
     return true;
 }
 void ElementWatcher::OnMessage(GstBus * bus, GstMessage * message)

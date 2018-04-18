@@ -15,7 +15,7 @@
  */
 
 #include "app.h"
-#include "../webstreamer.h"
+#include <webstreamer.h>
 
 bool IApp::Initialize(Promise* promise)
 {
@@ -25,10 +25,10 @@ bool IApp::Initialize(Promise* promise)
     }
 
     if (pipeline_) {
-        promise->resolve();
+        // promise->resolve();
         return true;
     } else {
-        promise->reject("create pipeline failed.");
+        // promise->reject("create pipeline failed.");
         return false;
     }
 }

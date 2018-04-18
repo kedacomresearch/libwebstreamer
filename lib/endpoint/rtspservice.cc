@@ -21,10 +21,11 @@
 GST_DEBUG_CATEGORY_STATIC(my_category);
 #define GST_CAT_DEFAULT my_category
 
-IRTSPService::IRTSPService(IApp* app,
-    const std::string& name, RTSPServer::Type type)
-    :IEndpoint(app, name),
-    factory_(NULL)
+IRTSPService::IRTSPService(IApp *app,
+                           const std::string &name,
+                           RTSPServer::Type type)
+    : IEndpoint(app, name)
+    , factory_(NULL)
 {
     GST_DEBUG_CATEGORY_INIT(my_category, "webstreamer", 2, "libWebStreamer");
     server_ = app->webstreamer().GetRTSPServer(type);
@@ -35,39 +36,41 @@ IRTSPService::~IRTSPService()
 }
 
 
-static  void Notify(gpointer      data, GObject      *where_the_object_was)
+static void Notify(gpointer data, GObject *where_the_object_was)
 {
     g_print(" data : %x\n", data);
     g_print(" where_the_object_was : %x\n", where_the_object_was);
 }
 void IRTSPService::on_tear_down(GstRTSPClient *client,
-    GstRTSPContext *ctx, gpointer user_data)
+                                GstRTSPContext *ctx,
+                                gpointer user_data)
 {
     IRTSPService *rtsp_service = static_cast<IRTSPService *>(user_data);
     auto it = std::find_if(rtsp_service->clients_.begin(),
-        rtsp_service->clients_.end(),
-                        [client](GstRTSPClient *curr_client) {
-                            return (curr_client == client);
-                        });
-    if (it != rtsp_service->clients_.end())
-    {
+                           rtsp_service->clients_.end(),
+                           [client](GstRTSPClient *curr_client) {
+                               return (curr_client == client);
+                           });
+    if (it != rtsp_service->clients_.end()) {
         rtsp_service->clients_.erase(it);
         GST_DEBUG("[rtsp-server] client: %p removed", client);
     }
 }
 void IRTSPService::on_client_connected(GstRTSPServer *gstrtspserver,
-    GstRTSPClient *client, gpointer user_data)
+                                       GstRTSPClient *client,
+                                       gpointer user_data)
 {
-    IRTSPService * rtsp_service = static_cast<IRTSPService *>(user_data);
+    IRTSPService *rtsp_service = static_cast<IRTSPService *>(user_data);
     rtsp_service->clients_.push_back(client);
-    g_signal_connect(client, "teardown-request",
-        (GCallback)(rtsp_service->on_tear_down), user_data);
+    g_signal_connect(client, "teardown-request", (GCallback)(rtsp_service->on_tear_down), user_data);
     GST_DEBUG("[rtsp-server] client: %p connected", client);
 }
-bool IRTSPService::Launch(const std::string& path, const std::string& launch,
-    GCallback media_constructed, GCallback media_configure)
+bool IRTSPService::Launch(const std::string &path,
+                          const std::string &launch,
+                          GCallback media_constructed,
+                          GCallback media_configure)
 {
-    GstRTSPServer* server = server_->server();
+    GstRTSPServer *server = server_->server();
     GstRTSPMountPoints *mount_points =
         gst_rtsp_server_get_mount_points(server);
 
@@ -77,28 +80,25 @@ bool IRTSPService::Launch(const std::string& path, const std::string& launch,
     gst_rtsp_media_factory_set_shared(factory_, TRUE);
 
     gst_rtsp_media_factory_set_launch(factory_, launch.c_str());
-    if (media_constructed)
-    {
-        g_signal_connect(factory_, "media-constructed",
-            (GCallback)media_constructed, (gpointer)(this));
+    if (media_constructed) {
+        g_signal_connect(factory_, "media-constructed", (GCallback)media_constructed, (gpointer)(this));
     }
 
-    if (media_configure)
-    {
-        g_signal_connect(factory_, "media-configure",
-            (GCallback)media_configure, (gpointer)(this));
+    if (media_configure) {
+        g_signal_connect(factory_, "media-configure", (GCallback)media_configure, (gpointer)(this));
     }
 
 
     gst_rtsp_mount_points_add_factory(mount_points, path.c_str(), factory_);
     g_object_unref(mount_points);
 
-    GST_DEBUG("[rtsp-server] %s launched to %s", name_.c_str(), path.c_str());
+    GST_DEBUG("[rtsp-server] %s launched to %s", name().c_str(), path.c_str());
     path_ = path;
     g_object_weak_ref(G_OBJECT(factory_), Notify, factory_);
 
-    g_signal_connect(server, "client-connected",
-        (GCallback)on_client_connected, (gpointer)(this));
+    g_signal_connect(server, "client-connected", (GCallback)on_client_connected, (gpointer)(this));
+
+    GST_DEBUG("[rtsp-server] Initialize done ( path: %s ).", path_.c_str());
 
     return true;
 }
@@ -106,14 +106,20 @@ bool IRTSPService::Launch(const std::string& path, const std::string& launch,
 
 bool IRTSPService::Stop()
 {
-    if (!clients_.empty())
-    {
-        for (auto client : clients_)
+    if (!clients_.empty()) {
+        for (auto client : clients_) {
+            // There's no bug here now, it will invoke 'gst_rtsp_client_finalize' firstly
+            // and do 'g_main_context_unref (priv->watch_context)'; while 'gst_rtsp_client_close'
+            // will unref the context again. The correct invoke order should be that invoke
+            // 'gst_rtsp_client_finalize'(automaticlly) after we invoke `gst_rtsp_client_close`
+            // seems like the bug below
+            // https://bugzilla.gnome.org/show_bug.cgi?id=790909
+            GST_FIXME("[rtsp-server] find a better method and do it nicely.");
             gst_rtsp_client_close(client);
+        }
     }
-    if (factory_)
-    {
-        GstRTSPServer* server = server_->server();
+    if (factory_) {
+        GstRTSPServer *server = server_->server();
         GstRTSPMountPoints *mount_points =
             gst_rtsp_server_get_mount_points(server);
 
@@ -121,6 +127,89 @@ bool IRTSPService::Stop()
         g_object_unref(mount_points);
 
         factory_ = NULL;
+        GST_DEBUG("[rtsp-server] Terminate done ( path: %s ).", path_.c_str());
     }
     return true;
+}
+bool IRTSPService::initialize(Promise *promise)
+{
+    if (launch_.empty()) {
+        return false;
+    }
+    IEndpoint::protocol() = "rtspserver";
+    return Launch(path_,
+                  launch_,
+                  (GCallback)IRTSPService::on_rtsp_media_constructed,
+                  NULL);
+}
+
+void IRTSPService::terminate()
+{
+    // dynamicly unlink
+    if (!app()->video_encoding().empty() &&
+        video_joint_.upstream_joint != NULL) {
+        app()->remove_pipe_joint(video_joint_.upstream_joint);
+    }
+    if (!app()->audio_encoding().empty() &&
+        audio_joint_.upstream_joint != NULL) {
+        app()->remove_pipe_joint(audio_joint_.upstream_joint);
+    }
+    // stop itself
+    Stop();
+    IEndpoint::terminate();
+}
+
+
+/////////////////////////////////////////////////////////////
+void IRTSPService::on_rtsp_media_constructed(GstRTSPMediaFactory *factory, GstRTSPMedia *media, gpointer user_data)
+{
+    auto rtspserver = static_cast<IRTSPService *>(user_data);
+    GstElement *rtsp_server_media_bin = gst_rtsp_media_get_element(media);
+
+    GstRTSPStream *gstrtspmedia = gst_rtsp_media_get_stream(media, 0);
+    gst_rtsp_stream_set_control(gstrtspmedia, "sink-false");
+
+    static int session_count = 0;
+    if (!rtspserver->app()->video_encoding().empty()) {
+        GST_DEBUG("[rtsp-server] media constructed: video");
+
+        static std::string media_type = "video";
+        std::string pipejoint_name = std::string("rtspserver_video_endpoint_joint_") +
+                                     rtspserver->name() +
+                                     std::to_string(session_count);
+        rtspserver->video_joint_ = make_pipe_joint(media_type, pipejoint_name);
+
+        rtspserver->app()->add_pipe_joint(rtspserver->video_joint_.upstream_joint);
+
+        g_warn_if_fail(gst_bin_add(GST_BIN(rtsp_server_media_bin), rtspserver->video_joint_.downstream_joint));
+
+        GstElement *video_pay = gst_bin_get_by_name_recurse_up(GST_BIN(rtsp_server_media_bin), "pay0");
+        g_warn_if_fail(gst_element_link(rtspserver->video_joint_.downstream_joint, video_pay));
+
+        GstPad *pad = gst_element_get_static_pad(video_pay, "src");
+        // gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, rtspserver->cb_have_data, user_data, NULL);
+        gst_object_unref(pad);
+    }
+
+    if (!rtspserver->app()->audio_encoding().empty()) {
+        GST_DEBUG("[rtsp-server] media constructed: audio");
+
+        static std::string media_type = "audio";
+        std::string pipejoint_name = std::string("rtspserver_audio_endpoint_joint_") +
+                                     rtspserver->name() +
+                                     std::to_string(session_count);
+        rtspserver->audio_joint_ = make_pipe_joint(media_type, pipejoint_name);
+
+        rtspserver->app()->add_pipe_joint(rtspserver->audio_joint_.upstream_joint);
+
+        g_warn_if_fail(gst_bin_add(GST_BIN(rtsp_server_media_bin), rtspserver->audio_joint_.downstream_joint));
+
+        GstElement *audio_pay = gst_bin_get_by_name_recurse_up(GST_BIN(rtsp_server_media_bin), "pay1");
+        g_warn_if_fail(gst_element_link(rtspserver->audio_joint_.downstream_joint, audio_pay));
+
+        // GstPad *pad = gst_element_get_static_pad(audio_pay, "src");
+        // gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, rtspserver->cb_have_data, user_data, NULL);
+        // gst_object_unref(pad);
+    }
+    session_count++;
 }

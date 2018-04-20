@@ -19,3 +19,12 @@ run tools/cpplint.bat
 if no error then build.
 
 run tools/build.bat
+
+You can  use cam to simplify these
+
+install python then do as below
+```bash
+pip install cam
+cd libwebstreamer
+cam build
+```

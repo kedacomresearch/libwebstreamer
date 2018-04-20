@@ -30,7 +30,7 @@ message_handler(GstBus * bus, GstMessage * message, gpointer data)
 
 bool ElementWatcher::Initialize(Promise* promise)
 {
-    promise->resolve();
+    // promise->resolve();
     return true;
 }
 
@@ -75,7 +75,7 @@ void ElementWatcher::Stop(Promise* promise)
 
 bool ElementWatcher::Destroy(Promise* promise)
 {
-    IApp::Destroy(promise);
+    // IApp::Destroy(promise);
     return true;
 }
 void ElementWatcher::OnMessage(GstBus * bus, GstMessage * message)

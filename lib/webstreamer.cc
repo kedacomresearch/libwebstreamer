@@ -32,6 +32,9 @@ GMainContext*  WebStreamer::main_context = NULL;
 
 using json = nlohmann::json;
 
+GST_DEBUG_CATEGORY_STATIC(my_category);
+#define GST_CAT_DEFAULT my_category
+
 static gboolean main_loop_init(GAsyncQueue* queue)
 {
     g_async_queue_push(queue, g_strdup("ready"));
@@ -107,6 +110,7 @@ WebStreamer::WebStreamer(plugin_interface_t* iface)
 }
 
 void WebStreamer::Initialize(Promise* promise) {
+    GST_DEBUG_CATEGORY_INIT(my_category, "webstreamer", 2, "libWebStreamer");
     promise->SetWebStreamer(this);
     state_ = State::INITIALIZING;
     gst_init(NULL, NULL);
@@ -183,12 +187,14 @@ void WebStreamer::OnPromise(Promise *promise)
         const std::string& type = j["type"];
         IApp* app = GetApp(name, type);
         if (!app) {
-            promise->reject("processor not exists.");
+            GST_ERROR("Processor not exists.");
+            promise->reject("Processor not exists.");
             return;
         }
         app->On(promise);
         return;
     }
+    delete promise;
 }
 
 
@@ -201,13 +207,15 @@ void WebStreamer::CreateApp(Promise* promise)
 
     IApp* app = GetApp(name, type);
     if (app) {
-        promise->reject(uname + " was an exist processor.");
+        GST_ERROR("%s was an exist app.", uname.c_str());
+		promise->reject(uname + " was an exist app.");
         return;
     }
 
     app = Factory::Instantiate(type, name, this);
     if (!app) {
-        promise->reject(type + " : type not supported");
+        GST_ERROR("%s : type not supported.", type.c_str());
+		promise->reject(type + " : type not supported.");
         return;
     }
 
@@ -216,9 +224,12 @@ void WebStreamer::CreateApp(Promise* promise)
         apps_[uname] = app;
     } else {
         delete app;
-        promise->reject("app initialize failed.");
+        GST_ERROR("App: %s initialize failed.", uname.c_str());
+        promise->reject("App initialize failed.");
         return;
     }
+    GST_INFO("Create an app: %s", uname.c_str());
+    promise->resolve();
 }
 void WebStreamer::DestroyApp(Promise* promise) {
     const json& j = promise->meta();
@@ -229,19 +240,23 @@ void WebStreamer::DestroyApp(Promise* promise) {
     IApp* app = GetApp(name, type);
     if (!app)
     {
-        promise->reject(uname + ": destrying a not exist app.");
+        GST_ERROR("%s: destroying a not existed app.", uname.c_str());
+		promise->reject(uname + ": destroying a not existed app.");
         return;
     }
 
     if (!app->Destroy(promise)) {
-        GST_INFO("%s is destrying.", uname.c_str());
+        delete app;
+        apps_.erase(uname);
+		GST_ERROR("%s: destroy app failed.", uname.c_str());
+        promise->reject(uname + ": destroy app failed.");
         return;
     }
     delete app;
     apps_.erase(uname);
 
+    GST_INFO("App: %s destroyed.", uname.c_str());
     promise->resolve();
-    delete promise;
 }
 
 static gboolean pool_cleanup(GstRTSPSessionPool* *pool)
@@ -260,11 +275,15 @@ std::string WebStreamer::InitRTSPServer(const nlohmann::json* option)
     // not start rtsp server
     if (!option || option->find("rtsp_server") == option->cend())
     {
-        return "";
+        return "Not start rtsp server.";
     }
     const nlohmann::json& opt = *option;
     auto rtsp_server = opt["rtsp_server"];
 
+    if (rtsp_server.find("max_sessions") == rtsp_server.end())
+    {
+        return "Rtsp server no max_sessions.";
+    }
     gint max_sessions = rtsp_server["max_sessions"];
     rtsp_session_pool_ = gst_rtsp_session_pool_new();
     gst_rtsp_session_pool_set_max_sessions(rtsp_session_pool_, max_sessions);
@@ -278,16 +297,21 @@ std::string WebStreamer::InitRTSPServer(const nlohmann::json* option)
         RTSPServer* server = new RTSPServer(RTSPServer::RFC7826, port);
         if (!server)
         {
-            error = "create RTSP Server failed ";
+            error = "Create RTSP Server failed.";
             goto _failed;
         }
 
-        if (!server->Initialize(rtsp_session_pool_, NULL))
+        if (!server->Initialize(rtsp_session_pool_, main_context))
         {
-            error = "initialize RTSP Server failed ";
+            error = "Initialize RTSP Server failed.";
             goto _failed;
         }
         rtspserver_[RTSPServer::RFC7826] = server;
+        GST_INFO("Create RTSPServer::RFC7826 on port:%d", port);
+    } else {
+        error = "Port: " + std::to_string(port) +
+                " has already been used in existed RTSPServer.";
+        goto _failed;
     }
 
     it = rtsp_server.find("onvif_port");
@@ -297,13 +321,13 @@ std::string WebStreamer::InitRTSPServer(const nlohmann::json* option)
         RTSPServer* server = new RTSPServer(RTSPServer::ONVIF, port);
         if (!server)
         {
-            error = "create Onvif RTSP Server failed ";
+            error = "Create Onvif RTSP Server failed.";
             goto _failed;
         }
 
-        if (!server->Initialize(rtsp_session_pool_, NULL))
+        if (!server->Initialize(rtsp_session_pool_, main_context))
         {
-            error = "initialize Onvif RTSP Server failed ";
+            error = "Initialize Onvif RTSP Server failed.";
             goto _failed;
         }
         rtspserver_[RTSPServer::ONVIF] = server;
@@ -330,6 +354,7 @@ _failed:
         g_object_unref(rtsp_session_pool_);
         rtsp_session_pool_ = NULL;
     }
+    GST_ERROR(error.c_str());
     return error;
 }
 
@@ -350,6 +375,7 @@ void WebStreamer::DestroyRTSPServer()
         g_object_unref(rtsp_session_pool_);
         rtsp_session_pool_ = NULL;
     }
+    GST_INFO("Destroy all RTSPServer.");
 }
 void WebStreamer::Notify(plugin_buffer_t* data, plugin_buffer_t* meta)
 {

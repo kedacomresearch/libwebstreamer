@@ -17,11 +17,7 @@
 #ifndef _LIBWEBSTREAMER_ELEMENT_WATCHER_H_
 #define _LIBWEBSTREAMER_ELEMENT_WATCHER_H_
 
-#include <string>
-
 #include <framework/app.h>
-
-#include <nlohmann/json.hpp>
 
 
 class ElementWatcher : public IApp

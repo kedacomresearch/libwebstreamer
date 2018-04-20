@@ -17,9 +17,13 @@
 #ifndef _LIBWEBSTREAMER_PROMISE_H_
 #define _LIBWEBSTREAMER_PROMISE_H_
 
+#include <vector>
+#include <list>
+#include <map>
+#include <string>
 #include <gst/gst.h>
-#include "plugin_interface.h"
-#include "nlohmann/json.hpp"
+#include <plugin_interface.h>
+#include <nlohmann/json.hpp>
 
 class WebStreamer;
 class IApp;

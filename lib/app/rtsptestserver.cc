@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "webstreamer.h"
 #include "rtsptestserver.h"
+#include <webstreamer.h>
 #include <endpoint/rtspservice.h>
 using json = nlohmann::json;
 
@@ -31,7 +31,7 @@ class RTSPTestService : public IRTSPService
 bool RTSPTestServer::Initialize(Promise* promise)
 {
     rtspservice_ = new RTSPTestService(this, "test");
-    promise->resolve();
+    // promise->resolve();
     return true;
 }
 

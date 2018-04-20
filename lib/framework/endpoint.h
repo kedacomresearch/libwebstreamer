@@ -18,20 +18,25 @@
 #ifndef _LIBWEBSTREAMER_FRAMEWORK_ENDPOINT_
 #define _LIBWEBSTREAMER_FRAMEWORK_ENDPOINT_
 
-#include <string>
+#include "promise.h"
 
 class IApp;
 class IEndpoint
 {
  public:
-    IEndpoint(IApp* app, const std::string& name);
+    IEndpoint(IApp *app, const std::string &name);
     ~IEndpoint();
 
-    IApp* app() { return app_; }
-    const std::string& name() { return name_; }
- protected:
-    IApp * app_;
+    IApp *app() { return app_; }
+    const std::string &name() { return name_; }
+    virtual bool initialize(Promise *promise) { return true; }
+    virtual void terminate() {}
+    const std::string &protocol() const { return protocol_; }
+    std::string &protocol() { return protocol_; }
+
+ private:
+    IApp *app_;
     std::string name_;
+    std::string protocol_;
 };
 #endif
-

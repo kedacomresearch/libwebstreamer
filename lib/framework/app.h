@@ -17,11 +17,9 @@
 
 #ifndef _LIBWEBSTREAMER_PROCESSOR_H_
 #define _LIBWEBSTREAMER_PROCESSOR_H_
-#include <string>
 
-#include <gst/gst.h>
-#include "promise.h"
-#include <framework/endpoint.h>
+
+#include "endpoint.h"
 class WebStreamer;
 class IApp
 {
@@ -44,13 +42,25 @@ class IApp
     virtual const char* type() const = 0;
     virtual std::string uname() = 0;
 
-    virtual void Notify(const nlohmann::json& data, const nlohmann::json& meta);
-    WebStreamer& webstreamer() { return *webstreamer_; }
+    virtual void Notify(const nlohmann::json &data, const nlohmann::json &meta);
+    WebStreamer &webstreamer() { return *webstreamer_; }
+    GstElement *pipeline() { return pipeline_; }
+    std::string name() { return name_; }
+    const std::string &video_encoding() const { return video_encoding_; }
+    std::string &video_encoding() { return video_encoding_; }
+    const std::string &audio_encoding() const { return audio_encoding_; }
+    std::string &audio_encoding() { return audio_encoding_; }
+
+    virtual void add_pipe_joint(GstElement *upstream_joint) {}
+    virtual void remove_pipe_joint(GstElement *upstream_joint) {}
 
  protected:
     std::string name_;
     GstElement* pipeline_;
     WebStreamer* webstreamer_;
+
+    std::string video_encoding_;
+    std::string audio_encoding_;
 };
 
 #define APP(klass)                               \

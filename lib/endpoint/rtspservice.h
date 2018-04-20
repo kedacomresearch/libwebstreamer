@@ -17,31 +17,54 @@
 #ifndef _LIBWEBSTREAMER_ENDPOINT_RTSP_SERVICE_H_
 #define _LIBWEBSTREAMER_ENDPOINT_RTSP_SERVICE_H_
 
-#include <string>
-#include <list>
-
 #include <framework/endpoint.h>
 #include <framework/rtspserver.h>
+#include <utils/pipejoint.h>
+
 
 class IRTSPService : public IEndpoint
 {
  public:
-    IRTSPService(IApp* app, const std::string& name, RTSPServer::Type type);
+    IRTSPService(IApp *app, const std::string &name, RTSPServer::Type type);
     ~IRTSPService();
 
-    virtual bool Launch(const std::string& path, const std::string& launch,
-                 GCallback media_constructed, GCallback media_configure);
-    virtual bool Stop();
- protected:
-    static void on_client_connected(GstRTSPServer *gstrtspserver,
-        GstRTSPClient *client, gpointer user_data);
-    static void on_tear_down(GstRTSPClient *client,
-        GstRTSPContext *ctx, gpointer user_data);
+    virtual bool initialize(Promise *promise);
+    virtual void terminate();
+
+    bool Launch(const std::string &path,
+                const std::string &launch,
+                GCallback media_constructed,
+                GCallback media_configure);
+    bool Stop();
+
+    std::string &path() { return path_; }
+    const std::string &path() const { return path_; }
+
+    std::string &launch() { return launch_; }
+    const std::string &launch() const { return launch_; }
+
+    static void on_rtsp_media_constructed(GstRTSPMediaFactory *factory,
+                                          GstRTSPMedia *media,
+                                          gpointer user_data);
+
+
  private:
-    GstRTSPMediaFactory * factory_;
-    RTSPServer*           server_;
-    std::string           path_;
+    static void on_client_connected(GstRTSPServer *gstrtspserver,
+                                    GstRTSPClient *client,
+                                    gpointer user_data);
+    static void on_tear_down(GstRTSPClient *client,
+                             GstRTSPContext *ctx,
+                             gpointer user_data);
+
+    GstRTSPMediaFactory *factory_;
+    RTSPServer *server_;
+    std::string path_;
     std::list<GstRTSPClient *> clients_;
+    std::string launch_;
+
+
+    PipeJoint video_joint_;
+    PipeJoint audio_joint_;
 };
 
 

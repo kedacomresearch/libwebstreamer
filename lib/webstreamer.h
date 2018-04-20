@@ -19,21 +19,11 @@
 
 #include <stdio.h>
 
-#include <gst/gst.h>
-
-#include <string>
-#include <map>
-
-
-
-#include "nlohmann/json.hpp"
-
-#include "./plugin_interface.h"
-
-#include "app/rtsptestserver.h"
-#include "app/elementwatcher.h"
-#include "app/rtsptestclient.h"
-#include "framework/rtspserver.h"
+#include <app/rtsptestserver.h>
+#include <app/elementwatcher.h>
+#include <app/rtsptestclient.h>
+#include <app/livestream.h>
+#include <framework/rtspserver.h>
 
 
 
@@ -129,9 +119,10 @@ class WebStreamer {
     }
 
  protected:
-    typedef AppFactory< RTSPTestServer
-        , ElementWatcher
-    > Factory;
+    typedef AppFactory<RTSPTestServer,
+                       ElementWatcher,
+                       LiveStream>
+        Factory;
 
 
     void MainLoop(Promise* promise);

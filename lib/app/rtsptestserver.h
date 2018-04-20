@@ -20,7 +20,6 @@
 #include <gst/rtsp-server/rtsp-server.h>
 #include <gst/rtsp-server/rtsp-session-pool.h>
 
-#include <string>
 #include <framework/app.h>
 
 

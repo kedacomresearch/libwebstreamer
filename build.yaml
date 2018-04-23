@@ -16,6 +16,7 @@ cpplint:
     - -readability/casting
     - -build/include_order
     - -build/include
+  linelength: 120
   sources:
     - lib/*/*.h
     - lib/*/*.cc

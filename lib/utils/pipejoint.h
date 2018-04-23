@@ -26,7 +26,8 @@ struct PipeJoint
     GstElement *downstream_joint = NULL;
 };
 
-PipeJoint make_pipe_joint(const std::string &media_type = "video", const std::string &name = "");
+PipeJoint make_pipe_joint(const std::string &media_type = "video",
+                          const std::string &name = "");
 void update_downstream_joint(PipeJoint *pipejoint);
 void destroy_pipe_joint(PipeJoint *pipejoint);
 

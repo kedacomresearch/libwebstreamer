@@ -38,9 +38,7 @@ class RtspClient : public IEndpoint
                                              guint stream_id,
                                              GstCaps *stream_caps,
                                              gpointer rtspclient);
-    // static void on_rtp_time_out(GstElement *rtpbin, guint session, guint ssrc, gpointer user_data);
-    // static void on_get_new_rtpbin(GstElement *rtspsrc, GstElement *manager, gpointer user_data);
-    // to del
+    // only for test
     static GstPadProbeReturn on_monitor_data(GstPad *pad,
                                              GstPadProbeInfo *info,
                                              gpointer rtspclient);
@@ -49,5 +47,6 @@ class RtspClient : public IEndpoint
     GstElement *rtpdepay_video_;
     GstElement *parse_video_;
     GstElement *rtpdepay_audio_;
+    bool add_to_pipeline_;
 };
 #endif

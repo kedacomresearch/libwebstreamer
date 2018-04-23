@@ -26,6 +26,11 @@ GST_DEBUG_CATEGORY_STATIC(my_category);
 
 RtspClient::RtspClient(IApp *app, const std::string &name)
     : IEndpoint(app, name)
+    , rtspsrc_(NULL)
+    , rtpdepay_video_(NULL)
+    , parse_video_(NULL)
+    , rtpdepay_audio_(NULL)
+    , add_to_pipeline_(false)
 {
 }
 
@@ -124,11 +129,11 @@ gboolean RtspClient::on_rtspsrc_select_stream(GstElement *src,
 bool RtspClient::add_to_pipeline()
 {
     auto pipeline = app();
-    static int added = 0;
-    if (added++ == 0) {
+    if (!add_to_pipeline_) {
         gst_bin_add(GST_BIN(pipeline->pipeline()), rtspsrc_);
         g_signal_connect(rtspsrc_, "pad-added", (GCallback)on_rtspsrc_pad_added, this);
         g_signal_connect(rtspsrc_, "select-stream", (GCallback)on_rtspsrc_select_stream, this);
+        add_to_pipeline_ = true;
     }
 
     if (!pipeline->video_encoding().empty()) {

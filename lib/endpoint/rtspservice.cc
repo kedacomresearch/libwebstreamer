@@ -96,7 +96,7 @@ bool IRTSPService::Launch(const std::string &path,
     path_ = path;
     g_object_weak_ref(G_OBJECT(factory_), Notify, factory_);
 
-    g_signal_connect(server, "client-connected", (GCallback)on_client_connected, (gpointer)(this));
+    // g_signal_connect(server, "client-connected", (GCallback)on_client_connected, (gpointer)(this));
 
     GST_DEBUG("[rtsp-server] Initialize done ( path: %s ).", path_.c_str());
 
@@ -122,7 +122,6 @@ bool IRTSPService::Stop()
         GstRTSPServer *server = server_->server();
         GstRTSPMountPoints *mount_points =
             gst_rtsp_server_get_mount_points(server);
-
         gst_rtsp_mount_points_remove_factory(mount_points, path_.c_str());
         g_object_unref(mount_points);
 
@@ -161,6 +160,11 @@ void IRTSPService::terminate()
 
 
 /////////////////////////////////////////////////////////////
+GstPadProbeReturn cb_have_data(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)
+{
+    printf("-");
+    return GST_PAD_PROBE_OK;
+}
 void IRTSPService::on_rtsp_media_constructed(GstRTSPMediaFactory *factory, GstRTSPMedia *media, gpointer user_data)
 {
     auto rtspserver = static_cast<IRTSPService *>(user_data);
@@ -187,7 +191,7 @@ void IRTSPService::on_rtsp_media_constructed(GstRTSPMediaFactory *factory, GstRT
         g_warn_if_fail(gst_element_link(rtspserver->video_joint_.downstream_joint, video_pay));
 
         GstPad *pad = gst_element_get_static_pad(video_pay, "src");
-        // gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, rtspserver->cb_have_data, user_data, NULL);
+        // gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, cb_have_data, user_data, NULL);
         gst_object_unref(pad);
     }
 

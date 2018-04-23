@@ -49,5 +49,6 @@ class RtspClient : public IEndpoint
     GstElement *rtpdepay_video_;
     GstElement *parse_video_;
     GstElement *rtpdepay_audio_;
+    bool add_to_pipeline_;
 };
 #endif

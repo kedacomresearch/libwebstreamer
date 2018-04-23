@@ -1,0 +1,25 @@
+tool: cmake
+msvs: 2015
+arch: x86_64
+directory: './build'
+steps:
+  - configure
+  - cpplint
+  - make
+  - install
+  - test
+cpplint:
+  filter:
+    - -whitespace/tab
+    - -build/header_guard
+    - -whitespace/braces
+    - -readability/casting
+    - -build/include_order
+    - -build/include
+  sources:
+    - lib/*/*.h
+    - lib/*/*.cc
+
+project:
+  - libwebstreamer:
+      location: '.'

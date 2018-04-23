@@ -64,7 +64,6 @@ void IRTSPService::on_client_connected(GstRTSPServer *gstrtspserver,
     rtsp_service->clients_.push_back(client);
     g_signal_connect(client, "teardown-request", (GCallback)(rtsp_service->on_tear_down), user_data);
     GST_DEBUG("[rtsp-server] client: %p connected", client);
-    GST_FIXME("[rtsp-server] all the GstRTSPMediaFactory will be triggle. This path is: %s", rtsp_service->path_.c_str());
 }
 bool IRTSPService::Launch(const std::string &path,
                           const std::string &launch,
@@ -163,7 +162,6 @@ void IRTSPService::terminate()
 /////////////////////////////////////////////////////////////
 GstPadProbeReturn cb_have_data(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)
 {
-
     printf("-");
     return GST_PAD_PROBE_OK;
 }

@@ -199,6 +199,7 @@ void LiveStream::remove_audience(Promise *promise)
     for (auto it = audiences_.begin(); it != audiences_.end(); ++it) {
         if ((*it) == ep) {
             audiences_.erase(it);
+            break;
         }
     }
     GST_INFO("[livestream] Remove audience: %s ( type: %s )", ep->name().c_str(), ep->protocol().c_str());

@@ -44,7 +44,7 @@ bool RtspClient::initialize(Promise *promise)
 
     const json &j = promise->data();
     const std::string &url = j["url"];
-    GST_DEBUG("[rtsp-client] Source url: %s", url.c_str());
+    GST_DEBUG("[rtsp-client] source url: %s", url.c_str());
     IEndpoint::protocol() = "rtspclient";
 
     rtspsrc_ = gst_element_factory_make("rtspsrc", "rtspsrc");
@@ -148,7 +148,7 @@ bool RtspClient::add_to_pipeline()
                 parse_video_ = gst_element_factory_make("h265parse", "parse");
                 break;
             default:
-                GST_WARNING("[rtsp-client] Invalid Video Codec!");
+                GST_WARNING("[rtsp-client] invalid Video Codec!");
                 return false;
         }
         g_warn_if_fail(rtpdepay_video_ && parse_video_);
@@ -156,7 +156,7 @@ bool RtspClient::add_to_pipeline()
         g_warn_if_fail(app()->pipeline() != NULL);
         gst_bin_add_many(GST_BIN(app()->pipeline()), rtpdepay_video_, parse_video_, NULL);
         g_warn_if_fail(gst_element_link(rtpdepay_video_, parse_video_));
-        GST_DEBUG("[rtsp-client] Configured video: %s", pipeline->video_encoding().c_str());
+        GST_DEBUG("[rtsp-client] configured video: %s", pipeline->video_encoding().c_str());
 
         // g_signal_connect(rtspsrc_, "new-manager", (GCallback)on_get_new_rtpbin, this);
     }
@@ -173,13 +173,13 @@ bool RtspClient::add_to_pipeline()
                 rtpdepay_audio_ = gst_element_factory_make("rtpopusdepay", "audio-depay");
                 break;
             default:
-                GST_WARNING("[rtsp-client] Invalid Audio Codec!");
+                GST_WARNING("[rtsp-client] invalid Audio Codec!");
                 return false;
         }
 
         g_warn_if_fail(rtpdepay_audio_);
         gst_bin_add_many(GST_BIN(app()->pipeline()), rtpdepay_audio_, NULL);
-        GST_DEBUG("[rtsp-client] Configured audio: %s", pipeline->audio_encoding().c_str());
+        GST_DEBUG("[rtsp-client] configured audio: %s", pipeline->audio_encoding().c_str());
     }
     GST_DEBUG("[rtsp-client] %s initialize done.", name().c_str());
 

@@ -20,6 +20,7 @@
 #include <framework/endpoint.h>
 #include <framework/rtspserver.h>
 #include <utils/pipejoint.h>
+#include <mutex>  // NOLINT
 
 
 class IRTSPService : public IEndpoint
@@ -52,15 +53,18 @@ class IRTSPService : public IEndpoint
     static void on_client_connected(GstRTSPServer *gstrtspserver,
                                     GstRTSPClient *client,
                                     gpointer user_data);
-    static void on_tear_down(GstRTSPClient *client,
-                             GstRTSPContext *ctx,
-                             gpointer user_data);
+    static void on_new_session(GstRTSPClient *gstrtspclient,
+                               GstRTSPSession *session,
+                               gpointer user_data);
+    static void onclosed(GstRTSPClient *client,
+                         gpointer user_data);
 
     GstRTSPMediaFactory *factory_;
     RTSPServer *server_;
     std::string path_;
-    std::list<GstRTSPClient *> clients_;
     std::string launch_;
+    std::map<GstRTSPSession *, GstRTSPClient *> clients_;
+    static std::mutex client_mutex_;
 
 
     PipeJoint video_joint_;

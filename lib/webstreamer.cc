@@ -187,8 +187,8 @@ void WebStreamer::OnPromise(Promise *promise)
         const std::string& type = j["type"];
         IApp* app = GetApp(name, type);
         if (!app) {
-            GST_ERROR("Processor not exists.");
-            promise->reject("Processor not exists.");
+            GST_ERROR("processor not exists.");
+            promise->reject("processor not exists.");
             return;
         }
         app->On(promise);
@@ -224,11 +224,11 @@ void WebStreamer::CreateApp(Promise* promise)
         apps_[uname] = app;
     } else {
         delete app;
-        GST_ERROR("App: %s initialize failed.", uname.c_str());
-        promise->reject("App initialize failed.");
+        GST_ERROR("app: %s initialize failed.", uname.c_str());
+        promise->reject("app initialize failed.");
         return;
     }
-    GST_INFO("Create an app: %s", uname.c_str());
+    GST_INFO("create an app: %s", uname.c_str());
     promise->resolve();
 }
 void WebStreamer::DestroyApp(Promise* promise) {
@@ -255,7 +255,7 @@ void WebStreamer::DestroyApp(Promise* promise) {
     delete app;
     apps_.erase(uname);
 
-    GST_INFO("App: %s destroyed.", uname.c_str());
+    GST_INFO("app: %s destroyed.", uname.c_str());
     promise->resolve();
 }
 
@@ -307,7 +307,7 @@ std::string WebStreamer::InitRTSPServer(const nlohmann::json* option)
             goto _failed;
         }
         rtspserver_[RTSPServer::RFC7826] = server;
-        GST_INFO("Create RTSPServer::RFC7826 on port:%d", port);
+        GST_INFO("create RTSPServer::RFC7826 on port:%d", port);
     } else {
         error = "Port: " + std::to_string(port) +
                 " has already been used in existed RTSPServer.";
@@ -375,7 +375,7 @@ void WebStreamer::DestroyRTSPServer()
         g_object_unref(rtsp_session_pool_);
         rtsp_session_pool_ = NULL;
     }
-    GST_INFO("Destroy all RTSPServer.");
+    GST_INFO("destroy all RTSPServer.");
 }
 void WebStreamer::Notify(plugin_buffer_t* data, plugin_buffer_t* meta)
 {

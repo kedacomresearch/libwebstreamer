@@ -121,14 +121,13 @@ void LiveStream::add_performer(Promise *promise)
     GST_ERROR("[livestream] add performer: %s failed!", name.c_str());
     promise->reject("add performer " + name + " failed!");
 }
-IEndpoint *LiveStream::find_audience(const std::string &name)
+std::list<IEndpoint *>::iterator LiveStream::find_audience(const std::string &name)
 {
-    for (auto it = audiences_.begin(); it != audiences_.end(); ++it) {
-        if ((*it)->name() == name) {
-            return *it;
-        }
-    }
-    return NULL;
+    return std::find_if(audiences_.begin(),
+                        audiences_.end(),
+                        [&name](IEndpoint *ep) {
+                            return ep->name() == name;
+                        });
 }
 
 void LiveStream::add_audience(Promise *promise)
@@ -143,7 +142,7 @@ void LiveStream::add_audience(Promise *promise)
     const std::string &name = j["name"];
     const std::string protocol = j["protocol"];
     const std::string path = j["path"];
-    if (find_audience(name)) {
+    if (find_audience(name) != audiences_.end()) {
         GST_ERROR("[livestream] audience: %s has been added.", name.c_str());
         promise->reject("[livestream] audience: " + name + " has been added.");
         return;
@@ -189,19 +188,16 @@ void LiveStream::remove_audience(Promise *promise)
 {
     const json &j = promise->data();
     const std::string &name = j["name"];
-    IEndpoint *ep = find_audience(name);
-    if (!ep) {
+    auto it = find_audience(name);
+    if (it == audiences_.end()) {
         GST_ERROR("[livestream] audience: %s has not been added.", name.c_str());
         promise->reject("[livestream] audience: " + name + " has not been added.");
         return;
     }
+    IEndpoint *ep = *it;
     ep->terminate();
-    for (auto it = audiences_.begin(); it != audiences_.end(); ++it) {
-        if ((*it) == ep) {
-            audiences_.erase(it);
-            break;
-        }
-    }
+    audiences_.erase(it);
+
     GST_INFO("[livestream] remove audience: %s (type: %s)", ep->name().c_str(), ep->protocol().c_str());
 
     delete ep;

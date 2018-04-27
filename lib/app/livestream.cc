@@ -90,15 +90,15 @@ void LiveStream::On(Promise *promise)
     } else if (action == "stop") {
         Stop(promise);
     } else {
-        GST_ERROR("[livestream] Action: %s is not supported!", action.c_str());
-        promise->reject("Action: " + action + " is not supported!");
+        GST_ERROR("[livestream] action: %s is not supported!", action.c_str());
+        promise->reject("action: " + action + " is not supported!");
     }
 }
 void LiveStream::add_performer(Promise *promise)
 {
     if (performer_ != NULL) {
-        GST_ERROR("[livestream] There's already a performer!");
-        promise->reject("There's already a performer!");
+        GST_ERROR("[livestream] there's already a performer!");
+        promise->reject("there's already a performer!");
         return;
     }
     // create endpoint
@@ -110,7 +110,7 @@ void LiveStream::add_performer(Promise *promise)
     if (rc) {
         // link endpoint to video/audio tee
         if (on_add_endpoint(performer_)) {
-            GST_INFO("[livestream] Add performer: %s ( type: %s )", name.c_str(), performer_->protocol().c_str());
+            GST_INFO("[livestream] add performer: %s (type: %s)", name.c_str(), performer_->protocol().c_str());
             promise->resolve();
             return;
         }
@@ -118,17 +118,16 @@ void LiveStream::add_performer(Promise *promise)
     performer_->terminate();
     delete performer_;
     performer_ = NULL;
-    GST_ERROR("[livestream] Add performer: %s failed!", name.c_str());
-    promise->reject("Add performer " + name + " failed!");
+    GST_ERROR("[livestream] add performer: %s failed!", name.c_str());
+    promise->reject("add performer " + name + " failed!");
 }
-IEndpoint *LiveStream::find_audience(const std::string &name)
+std::list<IEndpoint *>::iterator LiveStream::find_audience(const std::string &name)
 {
-    for (auto it = audiences_.begin(); it != audiences_.end(); ++it) {
-        if ((*it)->name() == name) {
-            return *it;
-        }
-    }
-    return NULL;
+    return std::find_if(audiences_.begin(),
+                        audiences_.end(),
+                        [&name](IEndpoint *ep) {
+                            return ep->name() == name;
+                        });
 }
 
 void LiveStream::add_audience(Promise *promise)
@@ -136,16 +135,16 @@ void LiveStream::add_audience(Promise *promise)
     // get endpoint protocol
     const json &j = promise->data();
     if (j.find("protocol") == j.end()) {
-        GST_ERROR("[livestream] No protocol in audience.");
-        promise->reject("[livestream] No protocol in audience.");
+        GST_ERROR("[livestream] no protocol in audience.");
+        promise->reject("[livestream] no protocol in audience.");
         return;
     }
     const std::string &name = j["name"];
     const std::string protocol = j["protocol"];
     const std::string path = j["path"];
-    if (find_audience(name)) {
-        GST_ERROR("[livestream] Audience: %s has been added.", name.c_str());
-        promise->reject("[livestream] Audience: " + name + " has been added.");
+    if (find_audience(name) != audiences_.end()) {
+        GST_ERROR("[livestream] audience: %s has been added.", name.c_str());
+        promise->reject("[livestream] audience: " + name + " has been added.");
         return;
     }
     // create endpoint
@@ -165,8 +164,8 @@ void LiveStream::add_audience(Promise *promise)
             static_cast<IRTSPService *>(ep)->launch() = launch;
         } break;
         default: {
-            GST_ERROR("[livestream] Protocol: %s not supported.", protocol.c_str());
-            promise->reject("[livestream] Protocol: " + protocol + " not supported.");
+            GST_ERROR("[livestream] protocol: %s not supported.", protocol.c_str());
+            promise->reject("[livestream] protocol: " + protocol + " not supported.");
             return;
         }
     }
@@ -175,34 +174,31 @@ void LiveStream::add_audience(Promise *promise)
     if (rc) {
         // add endpoint to pipeline and link with tee
         audiences_.push_back(ep);
-        GST_INFO("[livestream] Add audience: %s ( type: %s )", name.c_str(), protocol.c_str());
+        GST_INFO("[livestream] add audience: %s (type: %s)", name.c_str(), protocol.c_str());
         promise->resolve();
         return;
     }
     ep->terminate();
     delete ep;
     ep = NULL;
-    GST_ERROR("[livestream] Add performer: %s failed!", name.c_str());
-    promise->reject("Add performer " + name + " failed!");
+    GST_ERROR("[livestream] add performer: %s failed!", name.c_str());
+    promise->reject("add performer " + name + " failed!");
 }
 void LiveStream::remove_audience(Promise *promise)
 {
     const json &j = promise->data();
     const std::string &name = j["name"];
-    IEndpoint *ep = find_audience(name);
-    if (!ep) {
-        GST_ERROR("[livestream] Audience: %s has not been added.", name.c_str());
-        promise->reject("[livestream] Audience: " + name + " has not been added.");
+    auto it = find_audience(name);
+    if (it == audiences_.end()) {
+        GST_ERROR("[livestream] audience: %s has not been added.", name.c_str());
+        promise->reject("[livestream] audience: " + name + " has not been added.");
         return;
     }
+    IEndpoint *ep = *it;
     ep->terminate();
-    for (auto it = audiences_.begin(); it != audiences_.end(); ++it) {
-        if ((*it) == ep) {
-            audiences_.erase(it);
-            break;
-        }
-    }
-    GST_INFO("[livestream] Remove audience: %s ( type: %s )", ep->name().c_str(), ep->protocol().c_str());
+    audiences_.erase(it);
+
+    GST_INFO("[livestream] remove audience: %s (type: %s)", ep->name().c_str(), ep->protocol().c_str());
 
     delete ep;
     promise->resolve();
@@ -211,8 +207,8 @@ void LiveStream::remove_audience(Promise *promise)
 void LiveStream::Startup(Promise *promise)
 {
     if (!performer_) {
-        GST_ERROR("[livestream] There's no performer now, can't startup!");
-        promise->reject("There's no performer now, can't startup!");
+        GST_ERROR("[livestream] there's no performer now, can't startup!");
+        promise->reject("there's no performer now, can't startup!");
         return;
     }
     gst_element_set_state(pipeline(), GST_STATE_PLAYING);
@@ -222,14 +218,14 @@ void LiveStream::Stop(Promise *promise)
 {
     gst_element_set_state(pipeline(), GST_STATE_NULL);
     if (performer_) {
-        GST_DEBUG("[livestream] Remove performer: %s ( type: %s )",
+        GST_DEBUG("[livestream] remove performer: %s (type: %s)",
                   performer_->name().c_str(),
                   performer_->protocol().c_str());
         performer_->terminate();
         delete performer_;
     }
     for (auto audience : audiences_) {
-        GST_DEBUG("[livestream] Remove audience: %s ( type: %s )",
+        GST_DEBUG("[livestream] remove audience: %s (type: %s)",
                   audience->name().c_str(),
                   audience->protocol().c_str());
         audience->terminate();
@@ -353,7 +349,7 @@ void LiveStream::add_pipe_joint(GstElement *upstream_joint)
     joint_mutex_.lock();
     gchar *media_type = (gchar *)g_object_get_data(G_OBJECT(upstream_joint), "media-type");
     if (g_str_equal(media_type, "video")) {
-        GST_DEBUG("[livestream] add_pipe_joint: video");
+        GST_DEBUG("[livestream] add pipe joint: video");
         GstPadTemplate *templ = gst_element_class_get_pad_template(GST_ELEMENT_GET_CLASS(video_tee_), "src_%u");
         GstPad *pad = gst_element_request_pad(video_tee_, templ, NULL, NULL);
         sink_link *info = new sink_link(pad, upstream_joint, this);
@@ -368,7 +364,7 @@ void LiveStream::add_pipe_joint(GstElement *upstream_joint)
 
         sinks_.push_back(info);
     } else if (g_str_equal(media_type, "audio")) {
-        GST_DEBUG("[livestream] add_pipe_joint: audio");
+        GST_DEBUG("[livestream] add pipe joint: audio");
         GstPadTemplate *templ = gst_element_class_get_pad_template(GST_ELEMENT_GET_CLASS(audio_tee_), "src_%u");
         GstPad *pad = gst_element_request_pad(audio_tee_, templ, NULL, NULL);
         sink_link *info = new sink_link(pad, upstream_joint, this);

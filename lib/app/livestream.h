@@ -75,7 +75,7 @@ class LiveStream : public IApp
     static GstPadProbeReturn on_monitor_data(GstPad *pad,
                                              GstPadProbeInfo *info,
                                              gpointer user_data);
-    IEndpoint *find_audience(const std::string &name);
+    std::list<IEndpoint *>::iterator find_audience(const std::string &name);
     GstElement *video_tee_;
     GstElement *audio_tee_;
     IEndpoint *performer_;

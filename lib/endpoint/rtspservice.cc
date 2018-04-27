@@ -35,35 +35,53 @@ IRTSPService::~IRTSPService()
 {
 }
 
+std::mutex IRTSPService::client_mutex_;
 
 static void Notify(gpointer data, GObject *where_the_object_was)
 {
     g_print(" data : %x\n", data);
     g_print(" where_the_object_was : %x\n", where_the_object_was);
 }
-void IRTSPService::on_tear_down(GstRTSPClient *client,
-                                GstRTSPContext *ctx,
-                                gpointer user_data)
+
+void IRTSPService::on_new_session(GstRTSPClient *client,
+                                  GstRTSPSession *session,
+                                  gpointer user_data)
 {
     IRTSPService *rtsp_service = static_cast<IRTSPService *>(user_data);
+    char *str = gst_rtsp_client_get_path(client);
+    std::string path(str);
+    if (path != rtsp_service->path_)
+        return;
+    // std::string sessid(gst_rtsp_session_get_sessionid(session));
+    // printf("rtsp-server sessionid:%s\n", sessid.c_str());
+    client_mutex_.lock();
+    rtsp_service->clients_[session] = client;
+    client_mutex_.unlock();
+    g_signal_connect(client, "closed", (GCallback)(rtsp_service->onclosed), user_data);
+    GST_DEBUG("[rtsp-server] (path: %s) client: %p connected.", rtsp_service->path_.c_str(), client);
+}
+void IRTSPService::onclosed(GstRTSPClient *client, gpointer user_data)
+{
+    IRTSPService *rtsp_service = static_cast<IRTSPService *>(user_data);
+    client_mutex_.lock();
     auto it = std::find_if(rtsp_service->clients_.begin(),
                            rtsp_service->clients_.end(),
-                           [client](GstRTSPClient *curr_client) {
-                               return (curr_client == client);
+                           [client](auto curr_client) {
+                               return (curr_client.second == client);
                            });
     if (it != rtsp_service->clients_.end()) {
         rtsp_service->clients_.erase(it);
-        GST_DEBUG("[rtsp-server] client: %p removed", client);
+        GST_DEBUG("[rtsp-server] (path: %s) client: %p closed and removed.", rtsp_service->path_.c_str(), client);
     }
+    client_mutex_.unlock();
 }
+
 void IRTSPService::on_client_connected(GstRTSPServer *gstrtspserver,
                                        GstRTSPClient *client,
                                        gpointer user_data)
 {
     IRTSPService *rtsp_service = static_cast<IRTSPService *>(user_data);
-    rtsp_service->clients_.push_back(client);
-    g_signal_connect(client, "teardown-request", (GCallback)(rtsp_service->on_tear_down), user_data);
-    GST_DEBUG("[rtsp-server] client: %p connected", client);
+    g_signal_connect(client, "new-session", (GCallback)(rtsp_service->on_new_session), user_data);
 }
 bool IRTSPService::Launch(const std::string &path,
                           const std::string &launch,
@@ -96,9 +114,9 @@ bool IRTSPService::Launch(const std::string &path,
     path_ = path;
     g_object_weak_ref(G_OBJECT(factory_), Notify, factory_);
 
-    // g_signal_connect(server, "client-connected", (GCallback)on_client_connected, (gpointer)(this));
+    g_signal_connect(server, "client-connected", (GCallback)on_client_connected, (gpointer)(this));
 
-    GST_DEBUG("[rtsp-server] Initialize done ( path: %s ).", path_.c_str());
+    GST_DEBUG("[rtsp-server] (path: %s) initialize done.", path_.c_str());
 
     return true;
 }
@@ -106,16 +124,31 @@ bool IRTSPService::Launch(const std::string &path,
 
 bool IRTSPService::Stop()
 {
-    if (!clients_.empty()) {
-        for (auto client : clients_) {
+    client_mutex_.lock();
+    std::map<GstRTSPSession *, GstRTSPClient *> client_info;
+    client_info.swap(clients_);
+    client_mutex_.unlock();
+
+    if (!client_info.empty()) {
+        for (auto client : client_info) {
             // There's no bug here now, it will invoke 'gst_rtsp_client_finalize' firstly
             // and do 'g_main_context_unref (priv->watch_context)'; while 'gst_rtsp_client_close'
             // will unref the context again. The correct invoke order should be that invoke
             // 'gst_rtsp_client_finalize'(automaticlly) after we invoke `gst_rtsp_client_close`
             // seems like the bug below
             // https://bugzilla.gnome.org/show_bug.cgi?id=790909
-            GST_FIXME("[rtsp-server] find a better method and do it nicely.");
-            gst_rtsp_client_close(client);
+            gboolean rc = gst_rtsp_client_teardown_actively(client.second,
+                                                            (gchar *)path_.c_str(),
+                                                            client.first);
+            if (rc) {
+                GST_INFO("[rtsp-server] (path: %s) close client: %p actively.",
+                         path_.c_str(),
+                         client.second);
+            } else {
+                GST_FIXME("[rtsp-server] (path: %s) client: %p closed but not send teardown.",
+                          path_.c_str(),
+                          client.second);
+            }
         }
     }
     if (factory_) {
@@ -126,7 +159,7 @@ bool IRTSPService::Stop()
         g_object_unref(mount_points);
 
         factory_ = NULL;
-        GST_DEBUG("[rtsp-server] Terminate done ( path: %s ).", path_.c_str());
+        GST_DEBUG("[rtsp-server] (path: %s) terminate done.", path_.c_str());
     }
     return true;
 }
@@ -170,12 +203,13 @@ void IRTSPService::on_rtsp_media_constructed(GstRTSPMediaFactory *factory, GstRT
     auto rtspserver = static_cast<IRTSPService *>(user_data);
     GstElement *rtsp_server_media_bin = gst_rtsp_media_get_element(media);
 
-    GstRTSPStream *gstrtspmedia = gst_rtsp_media_get_stream(media, 0);
-    gst_rtsp_stream_set_control(gstrtspmedia, "sink-false");
+    GstRTSPStream *gstrtspstream = gst_rtsp_media_get_stream(media, 0);
+    g_object_set(G_OBJECT(gstrtspstream), "sink-false", TRUE, NULL);
+
 
     static int session_count = 0;
     if (!rtspserver->app()->video_encoding().empty()) {
-        GST_DEBUG("[rtsp-server] media constructed: video");
+        GST_DEBUG("[rtsp-server] (path: %s) media constructed: video", rtspserver->path_.c_str());
 
         static std::string media_type = "video";
         std::string pipejoint_name = std::string("rtspserver_video_endpoint_joint_") +
@@ -196,7 +230,7 @@ void IRTSPService::on_rtsp_media_constructed(GstRTSPMediaFactory *factory, GstRT
     }
 
     if (!rtspserver->app()->audio_encoding().empty()) {
-        GST_DEBUG("[rtsp-server] media constructed: audio");
+        GST_DEBUG("[rtsp-server] (path: %s) media constructed: audio", rtspserver->path_.c_str());
 
         static std::string media_type = "audio";
         std::string pipejoint_name = std::string("rtspserver_audio_endpoint_joint_") +

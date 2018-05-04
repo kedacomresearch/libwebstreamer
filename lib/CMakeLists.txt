@@ -43,3 +43,5 @@ add_test(NAME run-webstreamer-test
 
 SET_TESTS_PROPERTIES(run-webstreamer-test
  PROPERTIES ENVIRONMENT "LIBWEBSTREAMER_PATH=${instd}")
+
+ADD_DEFINITIONS( -DGST_USE_UNSTABLE_API  )

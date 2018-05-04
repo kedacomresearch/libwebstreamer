@@ -37,11 +37,11 @@ IRTSPService::~IRTSPService()
 
 std::mutex IRTSPService::client_mutex_;
 
-static void Notify(gpointer data, GObject *where_the_object_was)
-{
-    g_print(" data : %x\n", data);
-    g_print(" where_the_object_was : %x\n", where_the_object_was);
-}
+// static void Notify(gpointer data, GObject *where_the_object_was)
+// {
+//     g_print(" data : %x\n", data);
+//     g_print(" where_the_object_was : %x\n", where_the_object_was);
+// }
 
 void IRTSPService::on_new_session(GstRTSPClient *client,
                                   GstRTSPSession *session,
@@ -112,7 +112,7 @@ bool IRTSPService::Launch(const std::string &path,
 
     GST_DEBUG("[rtsp-server] %s launched to %s", name().c_str(), path.c_str());
     path_ = path;
-    g_object_weak_ref(G_OBJECT(factory_), Notify, factory_);
+    // g_object_weak_ref(G_OBJECT(factory_), Notify, factory_);
 
     g_signal_connect(server, "client-connected", (GCallback)on_client_connected, (gpointer)(this));
 

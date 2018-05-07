@@ -33,21 +33,26 @@ class WebRTC : public IEndpoint
     void set_remote_description(Promise *promise);
     void set_remote_candidate(Promise *promise);
 
+    GstElement *pipeline() { return pipeline_; }
+
  private:
     static void on_ice_candidate(GstElement *webrtc G_GNUC_UNUSED,
                                  guint mlineindex,
                                  gchar *candidate,
                                  gpointer user_data G_GNUC_UNUSED);
-    static void on_offer_created(GstPromise *promise, gpointer user_data);
+    static void on_sdp_created(GstPromise *promise, gpointer user_data);
     static void on_negotiation_needed(GstElement *element, gpointer user_data);
+    static void on_webrtc_pad_added(GstElement *webrtc, GstPad *new_pad, gpointer user_data);
 
 
     bool add_to_pipeline();
 
     GstElement *pipeline_;
+    GstElement *bin_;
     GstElement *webrtc_;
 
     PipeJoint video_joint_;
     PipeJoint audio_joint_;
+    std::string role_;
 };
 #endif

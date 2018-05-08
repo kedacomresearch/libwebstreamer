@@ -129,9 +129,10 @@ bool WebRTC::initialize(Promise *promise)
             launch_ += "rtp" + audio_enc + "pay name=pay1 ! queue ! " +
                        "application/x-rtp,media=audio,encoding-name=" + uppercase(audio_enc);
             if (uppercase(audio_enc) == "PCMA") {
-                launch_ += ",clock-rate=8000";
+                launch_ += ",payload=8 ! webrtc. ";
+            } else {
+                launch_ += ",payload=97 ! webrtc. ";
             }
-            launch_ += ",payload=97 ! webrtc. ";
         }
     } else {
         role_ = "answer";

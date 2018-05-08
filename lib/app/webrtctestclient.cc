@@ -59,6 +59,16 @@ static gboolean message_handler(GstBus *bus,
 void WebRTCTestClient::Startup(Promise *promise)
 {
     if (webrtc_ep_) {
+        const json &j = promise->data();
+        std::string launch;
+        if (j.find("launch") != j.end()) {
+            launch = j["launch"];
+        } else {
+            promise->reject("webrtc test client startup failed! No launch!");
+            return;
+        }
+        // printf("launch: %s\n", launch.c_str());
+        webrtc_ep_->launch() = launch;
         if (webrtc_ep_->initialize(promise)) {
             GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(webrtc_ep_->pipeline()));
             gst_bus_add_watch(bus, message_handler, this);

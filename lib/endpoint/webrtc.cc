@@ -29,39 +29,14 @@ WebRTC::WebRTC(IApp *app, const std::string &name)
     , pipeline_(NULL)
     , bin_(NULL)
     , webrtc_(NULL)
+    , role_("offer")
 {
 }
 
 WebRTC::~WebRTC()
 {
 }
-// void WebRTC::on_answer_created(GstPromise *promise, gpointer user_data)
-// {
-//     WebRTC *webrtc = static_cast<WebRTC *>(user_data);
-//     GstWebRTCSessionDescription *answer = NULL;
-//     // g_assert(gst_promise_wait(promise) == GST_PROMISE_RESULT_REPLIED);
-//     const GstStructure *reply = gst_promise_get_reply(promise);
-//     gst_structure_get(reply, "answer", GST_TYPE_WEBRTC_SESSION_DESCRIPTION, &answer, NULL);
-//     gst_promise_unref(promise);
 
-//     g_signal_emit_by_name(webrtc->webrtc_, "set-local-description", answer, NULL);
-
-//     /* Send answer to peer */
-//     std::string sdp_answer(gst_sdp_message_as_text(answer->sdp));
-//     json data;
-//     data["type"] = "answer";
-//     data["sdp"] = sdp_answer;
-//     json meta;
-//     meta["topic"] = "webrtc";
-//     meta["origin"] = webrtc->app()->uname();
-//     meta["type"] = "sdp";
-
-//     GST_DEBUG("[webrtc] %p local description created (answer).", webrtc->webrtc_);
-
-//     webrtc->app()->Notify(data, meta);
-
-//     gst_webrtc_session_description_free(answer);
-// }
 void WebRTC::on_ice_candidate(GstElement *webrtc_element G_GNUC_UNUSED,
                               guint mlineindex,
                               gchar *candidate,
@@ -140,31 +115,30 @@ bool WebRTC::initialize(Promise *promise)
     GST_DEBUG_CATEGORY_INIT(my_category, "webstreamer", 2, "libWebStreamer");
     IEndpoint::protocol() = "webrtc";
 
-    GError *error = NULL;
-
-    std::string launch = "webrtcbin name=webrtc ";
-    if (!app()->video_encoding().empty()) {
-        std::string video_enc = app()->video_encoding();
-        // launch += "rtspsrc location=rtsp://172.16.66.65/id=1 ! rtph264depay ! queue ! ";
-        launch += "rtp" + video_enc + "pay name=pay0 ! queue ! " +
-                  "application/x-rtp,media=video,encoding-name=" + uppercase(video_enc) +
-                  ",payload=96 ! webrtc. ";
-    }
-    if (!app()->audio_encoding().empty()) {
-        std::string audio_enc = app()->audio_encoding();
-        launch += "rtp" + audio_enc + "pay name=pay1 ! queue ! " +
-                  "application/x-rtp,media=audio,encoding-name=" + uppercase(audio_enc);
-        if (uppercase(audio_enc) == "PCMA") {
-            launch += ",clock-rate=8000";
+    if (launch_.empty()) {
+        launch_ = "webrtcbin name=webrtc ";
+        if (!app()->video_encoding().empty()) {
+            std::string video_enc = app()->video_encoding();
+            // launch += "rtspsrc location=rtsp://172.16.66.65/id=1 ! rtph264depay ! queue ! ";
+            launch_ += "rtp" + video_enc + "pay name=pay0 ! queue ! " +
+                       "application/x-rtp,media=video,encoding-name=" + uppercase(video_enc) +
+                       ",payload=96 ! webrtc. ";
         }
-        launch += ",payload=97,name=audio_cap ! webrtc. ";
+        if (!app()->audio_encoding().empty()) {
+            std::string audio_enc = app()->audio_encoding();
+            launch_ += "rtp" + audio_enc + "pay name=pay1 ! queue ! " +
+                       "application/x-rtp,media=audio,encoding-name=" + uppercase(audio_enc);
+            if (uppercase(audio_enc) == "PCMA") {
+                launch_ += ",clock-rate=8000";
+            }
+            launch_ += ",payload=97 ! webrtc. ";
+        }
+    } else {
+        role_ = "answer";
     }
-    const json &j = promise->data();
-    if (j.find("launch") != j.end()) {
-        launch = j["launch"];
-    }
-    // printf("===============>  %s\n", launch.c_str());
-    bin_ = gst_parse_launch(launch.c_str(), &error);
+    // printf("===============>  %s\n", launch_.c_str());
+    GError *error = NULL;
+    bin_ = gst_parse_launch(launch_.c_str(), &error);
 
     if (error) {
         GST_ERROR("[webrtc] Failed to parse launch: %s", error->message);
@@ -186,18 +160,10 @@ bool WebRTC::initialize(Promise *promise)
     }
 
     g_signal_connect(webrtc_, "on-ice-candidate", G_CALLBACK(WebRTC::on_ice_candidate), this);
-    if (j.find("launch") == j.end()) {
-        role_ = "offer";
+    if (role_ == "offer") {
         GstPromise *promise = gst_promise_new_with_change_func(WebRTC::on_sdp_created, this, NULL);
         g_signal_emit_by_name(webrtc_, "create-offer", NULL, promise);
         // g_signal_connect(webrtc_, "on-negotiation-needed", G_CALLBACK(WebRTC::on_negotiation_needed), this);
-    } else {
-        role_ = "answer";
-        // GstElement *test_element = gst_bin_get_by_name(GST_BIN(pipeline_), "video_payloader");
-        // GstPad *pad = gst_element_get_static_pad(test_element, "sink");
-        // gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, cb_have_data, this, NULL);
-        // gst_object_unref(pad);
-        // g_signal_connect(webrtc_, "pad-added", G_CALLBACK(WebRTC::on_webrtc_pad_added), this);
     }
 
     static int session_count = 0;

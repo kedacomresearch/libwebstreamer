@@ -34,6 +34,7 @@ class WebRTC : public IEndpoint
     void set_remote_candidate(Promise *promise);
 
     GstElement *pipeline() { return pipeline_; }
+    std::string &launch() { return launch_; }
 
  private:
     static void on_ice_candidate(GstElement *webrtc G_GNUC_UNUSED,
@@ -54,5 +55,6 @@ class WebRTC : public IEndpoint
     PipeJoint video_joint_;
     PipeJoint audio_joint_;
     std::string role_;
+    std::string launch_;
 };
 #endif

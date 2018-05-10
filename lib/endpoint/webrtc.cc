@@ -67,9 +67,9 @@ void WebRTC::on_sdp_created(GstPromise *promise, gpointer user_data)
     const GstStructure *reply = gst_promise_get_reply(promise);
     gst_structure_get(reply, webrtc->role_.c_str(), GST_TYPE_WEBRTC_SESSION_DESCRIPTION, &sdp, NULL);
     gst_promise_unref(promise);
-    // gst_sdp_media_add_attribute((GstSDPMedia *)&g_array_index(offer->sdp->medias, GstSDPMedia, 0),
-    //                             "fmtp",
-    //                             "96 profile-level-id=42e01f");
+    gst_sdp_media_add_attribute((GstSDPMedia *)&g_array_index(sdp->sdp->medias, GstSDPMedia, 0),
+                                "fmtp",
+                                "96 profile-level-id=42e01f");
 
 
     /* Send sdp to peer */

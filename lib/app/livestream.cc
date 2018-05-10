@@ -17,6 +17,7 @@
 #include "livestream.h"
 #include <endpoint/rtspclient.h>
 #include <endpoint/rtspservice.h>
+#include <endpoint/webrtc.h>
 #include <webstreamer.h>
 #include <utils/typedef.h>
 
@@ -89,6 +90,10 @@ void LiveStream::On(Promise *promise)
         Startup(promise);
     } else if (action == "stop") {
         Stop(promise);
+    } else if (action == "remote_sdp") {
+        set_remote_description(promise);
+    } else if (action == "remote_candidate") {
+        set_remote_candidate(promise);
     } else {
         GST_ERROR("[livestream] action: %s is not supported!", action.c_str());
         promise->reject("action: " + action + " is not supported!");
@@ -141,7 +146,6 @@ void LiveStream::add_audience(Promise *promise)
     }
     const std::string &name = j["name"];
     const std::string protocol = j["protocol"];
-    const std::string path = j["path"];
     if (find_audience(name) != audiences_.end()) {
         GST_ERROR("[livestream] audience: %s has been added.", name.c_str());
         promise->reject("[livestream] audience: " + name + " has been added.");
@@ -153,6 +157,7 @@ void LiveStream::add_audience(Promise *promise)
         case EndpointType::RTSP_SERVER: {
             ep = new IRTSPService(this, name, RTSPServer::RFC7826);
             // set path
+            const std::string path = j["path"];
             static_cast<IRTSPService *>(ep)->path() = path;
             // set launch
             std::string launch = "( ";
@@ -162,6 +167,9 @@ void LiveStream::add_audience(Promise *promise)
                 launch += "  rtp" + audio_encoding() + "pay pt=97 name=pay1";
             launch += " )";
             static_cast<IRTSPService *>(ep)->launch() = launch;
+        } break;
+        case EndpointType::WEBRTC: {
+            ep = new WebRTC(this, name);
         } break;
         default: {
             GST_ERROR("[livestream] protocol: %s not supported.", protocol.c_str());
@@ -181,8 +189,8 @@ void LiveStream::add_audience(Promise *promise)
     ep->terminate();
     delete ep;
     ep = NULL;
-    GST_ERROR("[livestream] add performer: %s failed!", name.c_str());
-    promise->reject("add performer " + name + " failed!");
+    GST_ERROR("[livestream] add audience: %s failed!", name.c_str());
+    promise->reject("add audience " + name + " failed!");
 }
 void LiveStream::remove_audience(Promise *promise)
 {
@@ -231,6 +239,39 @@ void LiveStream::Stop(Promise *promise)
         audience->terminate();
         delete audience;
     }
+    promise->resolve();
+}
+
+void LiveStream::set_remote_description(Promise *promise)
+{
+    const json &j = promise->data();
+
+    const std::string &name = j["name"];
+    auto it = find_audience(name);
+    if (it == audiences_.end()) {
+        GST_ERROR("[livestream] audience: %s has not been added.", name.c_str());
+        promise->reject("[livestream] audience: " + name + " has not been added.");
+        return;
+    }
+    WebRTC *ep = static_cast<WebRTC *>(*it);
+    ep->set_remote_description(promise);
+
+    promise->resolve();
+}
+void LiveStream::set_remote_candidate(Promise *promise)
+{
+    const json &j = promise->data();
+
+    const std::string &name = j["name"];
+    auto it = find_audience(name);
+    if (it == audiences_.end()) {
+        GST_ERROR("[livestream] audience: %s has not been added.", name.c_str());
+        promise->reject("[livestream] audience: " + name + " has not been added.");
+        return;
+    }
+    WebRTC *ep = static_cast<WebRTC *>(*it);
+    ep->set_remote_candidate(promise);
+
     promise->resolve();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -319,20 +360,20 @@ bool LiveStream::on_add_endpoint(IEndpoint *endpoint)
         // gst_element_set_state(pipeline(), GST_STATE_PLAYING);
         break;
         case EndpointType::RTSP_SERVER: {
-            std::string launch = "( ";
-            if (!video_encoding().empty())
-                launch += "rtp" + video_encoding() + "pay pt=96 name=pay0";
-            if (!audio_encoding().empty())
-                launch += "  rtp" + audio_encoding() + "pay pt=97 name=pay1";
-            launch += " )";
+            // std::string launch = "( ";
+            // if (!video_encoding().empty())
+            //     launch += "rtp" + video_encoding() + "pay pt=96 name=pay0";
+            // if (!audio_encoding().empty())
+            //     launch += "  rtp" + audio_encoding() + "pay pt=97 name=pay1";
+            // launch += " )";
 
-            IRTSPService *ep = static_cast<IRTSPService *>(endpoint);
-            bool rc = ep->Launch(ep->path(),
-                                 launch,
-                                 (GCallback)IRTSPService::on_rtsp_media_constructed,
-                                 NULL);
-            if (!rc)
-                return false;
+            // IRTSPService *ep = static_cast<IRTSPService *>(endpoint);
+            // bool rc = ep->Launch(ep->path(),
+            //                      launch,
+            //                      (GCallback)IRTSPService::on_rtsp_media_constructed,
+            //                      NULL);
+            // if (!rc)
+            //     return false;
         } break;
         // case EndpointType::WEBRTC:
         //     break;

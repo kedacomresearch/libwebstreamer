@@ -23,6 +23,7 @@
 #include <app/elementwatcher.h>
 #include <app/rtsptestclient.h>
 #include <app/livestream.h>
+#include <app/webrtctestclient.h>
 #include <framework/rtspserver.h>
 
 
@@ -121,7 +122,8 @@ class WebStreamer {
  protected:
     typedef AppFactory<RTSPTestServer,
                        ElementWatcher,
-                       LiveStream>
+                       LiveStream,
+                       WebRTCTestClient>
         Factory;
 
 

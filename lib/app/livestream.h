@@ -59,18 +59,22 @@ class LiveStream : public IApp
     void remove_audience(Promise *promise);
     void Startup(Promise *promise);
     void Stop(Promise *promise);
+    void set_remote_description(Promise *promise);
+    void set_remote_candidate(Promise *promise);
 
     bool on_add_endpoint(IEndpoint *endpoint);
     virtual bool MessageHandler(GstMessage *msg);
 
  private:
     static GstPadProbeReturn
-	on_tee_pad_remove_video_probe(GstPad *pad,
-		GstPadProbeInfo *probe_info, gpointer data);
+    on_tee_pad_remove_video_probe(GstPad *pad,
+                                  GstPadProbeInfo *probe_info,
+                                  gpointer data);
 
     static GstPadProbeReturn
-	on_tee_pad_remove_audio_probe(GstPad *pad,
-		GstPadProbeInfo *probe_info, gpointer data);
+    on_tee_pad_remove_audio_probe(GstPad *pad,
+                                  GstPadProbeInfo *probe_info,
+                                  gpointer data);
 
     static GstPadProbeReturn on_monitor_data(GstPad *pad,
                                              GstPadProbeInfo *info,
@@ -82,8 +86,8 @@ class LiveStream : public IApp
     std::list<IEndpoint *> audiences_;
 
     std::list<sink_link *> sinks_;  // all the request pad of tee,
-	                                // release when removing from
-	                                // pipeline
+                                    // release when removing from
+                                    // pipeline
 
     GstPad *video_tee_pad_;
     GstElement *fake_video_queue_;

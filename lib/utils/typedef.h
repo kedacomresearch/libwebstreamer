@@ -43,4 +43,6 @@ EndpointType get_endpoint_type(const std::string &type);
 VideoEncodingType get_video_encoding_type(const std::string &type);
 AudioEncodingType get_audio_encoding_type(const std::string &type);
 
+std::string uppercase(const std::string target);
+
 #endif

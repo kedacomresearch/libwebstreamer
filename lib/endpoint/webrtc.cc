@@ -29,7 +29,6 @@ WebRTC::WebRTC(IApp *app, const std::string &name)
     , pipeline_(NULL)
     , bin_(NULL)
     , webrtc_(NULL)
-    , role_("offer")
 {
 }
 
@@ -102,12 +101,52 @@ static GstPadProbeReturn cb_have_data(GstPad *pad, GstPadProbeInfo *info, gpoint
 }
 void WebRTC::on_webrtc_pad_added(GstElement *webrtc_element, GstPad *new_pad, gpointer user_data)
 {
-    printf("=========on_webrtc_pad_added===========\n");
     WebRTC *webrtc = static_cast<WebRTC *>(user_data);
-    GstElement *video_payloader = gst_bin_get_by_name(GST_BIN(webrtc->pipeline_), "video_payloader");
-    GstPad *pad = gst_element_get_static_pad(video_payloader, "sink");
-    gst_pad_link(new_pad, pad);
-    gst_object_unref(pad);
+    printf("=========on_webrtc_pad_added %s===========\n", webrtc->role_.c_str());
+    // GstElement *video_payloader = gst_bin_get_by_name(GST_BIN(webrtc->pipeline_), "video_payloader");
+    // GstPad *pad = gst_element_get_static_pad(video_payloader, "sink");
+    // gst_pad_link(new_pad, pad);
+    // gst_object_unref(pad);
+
+    GstElement *out = NULL;
+    GstPad *sink = NULL;
+    GstCaps *caps;
+    GstStructure *s;
+    const gchar *encoding_name;
+
+    if (GST_PAD_DIRECTION(new_pad) != GST_PAD_SRC)
+        return;
+
+    caps = gst_pad_get_current_caps(new_pad);
+    if (!caps)
+        caps = gst_pad_query_caps(new_pad, NULL);
+    // GST_ERROR_OBJECT(new_pad, "caps %" GST_PTR_FORMAT, caps);
+    // g_assert(gst_caps_is_fixed(caps));
+    s = gst_caps_get_structure(caps, 0);
+    encoding_name = gst_structure_get_string(s, "encoding-name");
+    if (g_strcmp0(encoding_name, "H264") == 0) {
+        printf("-------------video---------\n");
+        out = gst_parse_bin_from_description(
+            "rtph264depay ! avdec_h264 ! autovideosink sync=false",
+            TRUE,
+            NULL);
+    } else if (g_strcmp0(encoding_name, "PCMA") == 0) {
+        out = gst_parse_bin_from_description(
+            "rtppcmadepay ! alawdec ! "
+            "audioconvert ! audioresample ! audiorate ! queue ! autoaudiosink",
+            TRUE,
+            NULL);
+    } else {
+        g_critical("Unknown encoding name %s", encoding_name);
+        g_assert_not_reached();
+    }
+    gst_bin_add(GST_BIN(webrtc->bin_), out);
+    gst_element_sync_state_with_parent(out);
+    sink = (GstPad *)out->sinkpads->data;
+
+    gst_pad_link(new_pad, sink);
+
+    gst_caps_unref(caps);
 }
 
 bool WebRTC::initialize(Promise *promise)
@@ -115,6 +154,14 @@ bool WebRTC::initialize(Promise *promise)
     GST_DEBUG_CATEGORY_INIT(my_category, "webstreamer", 2, "libWebStreamer");
     IEndpoint::protocol() = "webrtc";
 
+    const json &j = promise->data();
+    if (j.find("role") != j.end()) {
+        role_ = j["role"];
+    }
+    if (role_ != "offer" && role_ != "answer") {
+        GST_ERROR("[webrtc] %p initialize failed, invalid role: %s.", webrtc_, role_.c_str());
+        return false;
+    }
     if (launch_.empty()) {
         launch_ = "webrtcbin name=webrtc ";
         if (!app()->video_encoding().empty()) {
@@ -134,8 +181,6 @@ bool WebRTC::initialize(Promise *promise)
                 launch_ += ",payload=97 ! webrtc. ";
             }
         }
-    } else {
-        role_ = "answer";
     }
     // printf("===============>  %s\n", launch_.c_str());
     GError *error = NULL;
@@ -161,6 +206,9 @@ bool WebRTC::initialize(Promise *promise)
     }
 
     g_signal_connect(webrtc_, "on-ice-candidate", G_CALLBACK(WebRTC::on_ice_candidate), this);
+    // if (role_=="offer") {
+    //     g_signal_connect(webrtc_, "pad-added", G_CALLBACK(WebRTC::on_webrtc_pad_added), this);
+    // }
     if (role_ == "offer") {
         GstPromise *promise = gst_promise_new_with_change_func(WebRTC::on_sdp_created, this, NULL);
         g_signal_emit_by_name(webrtc_, "create-offer", NULL, promise);

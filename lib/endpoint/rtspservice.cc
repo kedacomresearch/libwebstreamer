@@ -48,12 +48,14 @@ void IRTSPService::on_new_session(GstRTSPClient *client,
                                   gpointer user_data)
 {
     IRTSPService *rtsp_service = static_cast<IRTSPService *>(user_data);
-    char *str = gst_rtsp_client_get_path(client);
+    char *str;
+    g_object_get(G_OBJECT(client), "path", &str, NULL);
     std::string path(str);
     if (path != rtsp_service->path_)
         return;
     // std::string sessid(gst_rtsp_session_get_sessionid(session));
     // printf("rtsp-server sessionid:%s\n", sessid.c_str());
+
     client_mutex_.lock();
     rtsp_service->clients_[session] = client;
     client_mutex_.unlock();
@@ -137,18 +139,12 @@ bool IRTSPService::Stop()
             // 'gst_rtsp_client_finalize'(automaticlly) after we invoke `gst_rtsp_client_close`
             // seems like the bug below
             // https://bugzilla.gnome.org/show_bug.cgi?id=790909
-            gboolean rc = gst_rtsp_client_teardown_actively(client.second,
-                                                            (gchar *)path_.c_str(),
-                                                            client.first);
-            if (rc) {
-                GST_INFO("[rtsp-server] (path: %s) close client: %p actively.",
-                         path_.c_str(),
-                         client.second);
-            } else {
-                GST_FIXME("[rtsp-server] (path: %s) client: %p closed but not send teardown.",
-                          path_.c_str(),
-                          client.second);
-            }
+
+            g_object_set(G_OBJECT(client.second), "path", (gchar *)path_.c_str(), "close", client.first, NULL);
+
+            GST_INFO("[rtsp-server] (path: %s) close client: %p actively.",
+                     path_.c_str(),
+                     client.second);
         }
     }
     if (factory_) {
@@ -204,8 +200,15 @@ void IRTSPService::on_rtsp_media_constructed(GstRTSPMediaFactory *factory, GstRT
     GstElement *rtsp_server_media_bin = gst_rtsp_media_get_element(media);
 
     GstRTSPStream *gstrtspstream = gst_rtsp_media_get_stream(media, 0);
-    g_object_set(G_OBJECT(gstrtspstream), "sink-false", TRUE, NULL);
 
+    gboolean sync = TRUE;
+    g_object_get(G_OBJECT(gstrtspstream), "sink-false", &sync, NULL);
+    if (!sync) {
+        GST_FIXME("[rtsp-server] (path: %s) uses the fixed plugin.", rtspserver->path_.c_str());
+    } else {
+        GST_FIXME("[rtsp-server] (path: %s) uses the origin plugin.", rtspserver->path_.c_str());
+    }
+    g_object_set(G_OBJECT(gstrtspstream), "sink-false", TRUE, NULL);
 
     static int session_count = 0;
     if (!rtspserver->app()->video_encoding().empty()) {

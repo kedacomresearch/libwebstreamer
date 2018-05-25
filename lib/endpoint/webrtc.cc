@@ -101,12 +101,9 @@ static GstPadProbeReturn cb_have_data(GstPad *pad, GstPadProbeInfo *info, gpoint
 }
 void WebRTC::on_webrtc_pad_added(GstElement *webrtc_element, GstPad *new_pad, gpointer user_data)
 {
+    // this function is just for test, it could only show h264 video.
     WebRTC *webrtc = static_cast<WebRTC *>(user_data);
     printf("=========on_webrtc_pad_added %s===========\n", webrtc->role_.c_str());
-    // GstElement *video_payloader = gst_bin_get_by_name(GST_BIN(webrtc->pipeline_), "video_payloader");
-    // GstPad *pad = gst_element_get_static_pad(video_payloader, "sink");
-    // gst_pad_link(new_pad, pad);
-    // gst_object_unref(pad);
 
     GstElement *out = NULL;
     GstPad *sink = NULL;
@@ -125,7 +122,6 @@ void WebRTC::on_webrtc_pad_added(GstElement *webrtc_element, GstPad *new_pad, gp
     s = gst_caps_get_structure(caps, 0);
     encoding_name = gst_structure_get_string(s, "encoding-name");
     if (g_strcmp0(encoding_name, "H264") == 0) {
-        printf("-------------video---------\n");
         out = gst_parse_bin_from_description(
             "rtph264depay ! avdec_h264 ! autovideosink sync=false",
             TRUE,
@@ -197,6 +193,15 @@ bool WebRTC::initialize(Promise *promise)
     gst_bin_add(GST_BIN(pipeline_), bin_);
     g_assert_nonnull(pipeline_);
     webrtc_ = gst_bin_get_by_name(GST_BIN(pipeline_), "webrtc");
+
+    gboolean sync = TRUE;
+    g_object_get(G_OBJECT(webrtc_), "sink-false", &sync, NULL);
+    if (!sync) {
+        GST_FIXME("[webrtc] %p (%s) uses the fixed plugin.", webrtc_, role_.c_str());
+    } else {
+        GST_FIXME("[webrtc] %p (%s) uses the origin plugin.", webrtc_, role_.c_str());
+    }
+    g_object_set(G_OBJECT(webrtc_), "sink-false", TRUE, NULL);
 
     // specific parameter
     if (app()->video_encoding() == "h264") {

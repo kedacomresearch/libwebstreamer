@@ -187,7 +187,7 @@ void WebStreamer::OnPromise(Promise *promise)
         const std::string& type = j["type"];
         IApp* app = GetApp(name, type);
         if (!app) {
-            GST_ERROR("processor not exists.");
+            GST_ERROR("processor not exists (%s@%s).", name.c_str(), type.c_str());
             promise->reject("processor not exists.");
             return;
         }

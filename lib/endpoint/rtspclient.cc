@@ -66,9 +66,9 @@ GstPadProbeReturn RtspClient::on_monitor_data(GstPad *pad,
                                               GstPadProbeInfo *info,
                                               gpointer rtspclient)
 {
-    static int count = 0;
-    RtspClient *rtsp_client = static_cast<RtspClient *>(rtspclient);
-    auto pipeline = rtsp_client->app();
+    // static int count = 0;
+    // RtspClient *rtsp_client = static_cast<RtspClient *>(rtspclient);
+    // auto pipeline = rtsp_client->app();
 
     // printf(".%d", GST_STATE(pipeline->pipeline()));
     printf(".");

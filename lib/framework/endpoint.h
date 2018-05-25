@@ -25,7 +25,7 @@ class IEndpoint
 {
  public:
     IEndpoint(IApp *app, const std::string &name);
-    ~IEndpoint();
+    virtual ~IEndpoint();
 
     IApp *app() { return app_; }
     const std::string &name() { return name_; }

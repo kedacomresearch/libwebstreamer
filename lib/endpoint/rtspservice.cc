@@ -68,7 +68,7 @@ void IRTSPService::onclosed(GstRTSPClient *client, gpointer user_data)
     client_mutex_.lock();
     auto it = std::find_if(rtsp_service->clients_.begin(),
                            rtsp_service->clients_.end(),
-                           [client](auto curr_client) {
+                           [client](std::pair<GstRTSPSession *, GstRTSPClient *> curr_client) {
                                return (curr_client.second == client);
                            });
     if (it != rtsp_service->clients_.end()) {

@@ -33,15 +33,15 @@ class Promise
     Promise(void* iface, const void* context, plugin_callback_fn callback,
         const nlohmann::json& jmeta = nlohmann::json(),
         const nlohmann::json& jdata = nlohmann::json())
-        : iface_((plugin_interface_t *)iface)
+        : user_data(NULL)
+        , iface_((plugin_interface_t *)iface)
         , context_(context)
-        , jmeta_(jmeta)
         , jdata_(jdata)
+        , jmeta_(jmeta)
         , responsed_(false)
-        , app_(nullptr)
         , webstreamer_(nullptr)
+        , app_(nullptr)
         , callback_(callback)
-        , user_data(NULL)
     {
     }
 

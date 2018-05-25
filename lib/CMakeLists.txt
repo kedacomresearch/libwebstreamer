@@ -24,7 +24,7 @@ if( MSVC )
 	set(instd ${instd}/win )
 else()
 	set(instd ${instd}/linux )
-	set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -std=c++11")
+	# set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Wno-unused-parameter -Wno-sign-compare -std=c++11")
 endif()
 
 if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL AMD64 OR ${CMAKE_SYSTEM_PROCESSOR} STREQUAL x86_64 )

@@ -24,12 +24,13 @@ class WebStreamer;
 class IApp
 {
  public:
-    class IApp(const std::string& name, WebStreamer* ws)
+    IApp(const std::string& name, WebStreamer* ws)
         : name_(name)
         , pipeline_(NULL)
         , webstreamer_(ws)
 
     {}
+    virtual ~IApp(){}
 
     virtual bool Initialize(Promise* promise);
     /*

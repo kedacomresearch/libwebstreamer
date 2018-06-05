@@ -18,8 +18,12 @@
 
 using json = nlohmann::json;
 
+GST_DEBUG_CATEGORY_STATIC(my_category);
+#define GST_CAT_DEFAULT my_category
+
 bool WebRTCTestClient::Initialize(Promise *promise)
 {
+    GST_DEBUG_CATEGORY_INIT(my_category, "webstreamer", 2, "libWebStreamer");
     webrtc_ep_ = new WebRTC(this, "test");
     return true;
 }
@@ -73,6 +77,17 @@ void WebRTCTestClient::Startup(Promise *promise)
             GstBus *bus = gst_pipeline_get_bus(GST_PIPELINE(webrtc_ep_->pipeline()));
             gst_bus_add_watch(bus, message_handler, this);
             gst_object_unref(bus);
+
+            GstElement *sink = gst_bin_get_by_name(GST_BIN(webrtc_ep_->pipeline()), "sink");
+            set_sink(sink);
+            if (sink == NULL) {
+                GST_INFO("[webrtc test client] use multifilesink for test.");
+            } else {
+                GST_INFO("[webrtc test client] use raw image data for test.");
+                GstPad *pad = gst_element_get_static_pad(sink, "sink");
+                gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_BUFFER, ElementWatcher::on_have_data, this, NULL);
+                gst_object_unref(pad);
+            }
 
             promise->resolve();
             return;

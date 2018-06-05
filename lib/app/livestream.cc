@@ -58,6 +58,12 @@ bool LiveStream::Initialize(Promise *promise)
 bool LiveStream::Destroy(Promise *promise)
 {
     gst_element_set_state(pipeline(), GST_STATE_NULL);
+    if (video_tee_pad_) {
+        gst_element_release_request_pad(video_tee_, video_tee_pad_);
+    }
+    if (audio_tee_pad_) {
+        gst_element_release_request_pad(audio_tee_, audio_tee_pad_);
+    }
     if (!sinks_.empty()) {
         for (auto info : sinks_) {
             GstElement *upstream_joint = info->upstream_joint;

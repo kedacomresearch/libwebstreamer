@@ -24,30 +24,44 @@ class ElementWatcher : public IApp
 {
  public:
     APP(ElementWatcher);
-    ElementWatcher(const std::string& name, WebStreamer* ws)
+    ElementWatcher(const std::string &name, WebStreamer *ws)
         : IApp(name, ws)
         , pipeline_(NULL)
+        , time_id_(-1)
+        , sink_(NULL)
+        , frame_(10)
+        , cur_frame_(0)
     {
     }
 
-    void On(Promise* promise);
-    bool Initialize(Promise* promise);
-    bool Destroy(Promise* promise);
+    void On(Promise *promise);
+    bool Initialize(Promise *promise);
+    bool Destroy(Promise *promise);
 
-    virtual void OnMessage(GstBus * bus, GstMessage * message);
+    virtual void OnMessage(GstBus *bus, GstMessage *message);
+
  protected:
-    void Startup(Promise* promise);
-    void Stop(Promise* promise);
+    void Startup(Promise *promise);
+    void Stop(Promise *promise);
 
-    void OnSpectrum(const std::string& name,
-        const GstStructure * message);
+    void OnSpectrum(const std::string &name,
+                    const GstStructure *message);
 
-    void OnMultifilesink(const std::string& name,
-        const GstStructure * message);
+    void OnMultifilesink(const std::string &name,
+                         const GstStructure *message);
+
+    static gboolean on_save_image(gpointer user_data);
+    static GstPadProbeReturn on_have_data(GstPad *pad, GstPadProbeInfo *info, gpointer user_data);
+    void set_sink(GstElement *sink) { sink_ = sink; }
 
  private:
-    GstElement * pipeline_;
+    GstElement *pipeline_;
     nlohmann::json watch_list_;
+    int time_id_;
+    GstElement *sink_;
+    std::vector<unsigned char *> bmps_;
+    int frame_;
+    int cur_frame_;
 };
 
 

@@ -23,16 +23,16 @@
 // #define USE_AUTO_SINK 1
 struct sink_link
 {
-    GstPad *tee_pad;
     GstElement *upstream_joint;
+    GstPad *tee_pad;
     void *pipeline;
     gboolean video_probe_invoke_control;
     gboolean audio_probe_invoke_control;
 
     sink_link(GstPad *pad, GstElement *joint, void *pipe)
         : upstream_joint(joint)
-        , pipeline(pipe)
         , tee_pad(pad)
+        , pipeline(pipe)
         , video_probe_invoke_control(FALSE)
         , audio_probe_invoke_control(FALSE)
     {

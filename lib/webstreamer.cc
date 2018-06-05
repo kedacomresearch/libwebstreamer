@@ -121,7 +121,8 @@ void WebStreamer::Initialize(Promise* promise) {
     _main_thread = g_thread_new("webstreamer_main_loop",
         (GThreadFunc)MainloopEntry, promise);
 
-    char* p = (char*)g_async_queue_pop(queue);
+    // char* p = (char*)g_async_queue_pop(queue);
+    g_async_queue_pop(queue);
 }
 
 bool WebStreamer::Prepare(Promise* promise)
@@ -187,7 +188,7 @@ void WebStreamer::OnPromise(Promise *promise)
         const std::string& type = j["type"];
         IApp* app = GetApp(name, type);
         if (!app) {
-            GST_ERROR("processor not exists.");
+            GST_ERROR("processor not exists (%s@%s).", name.c_str(), type.c_str());
             promise->reject("processor not exists.");
             return;
         }
